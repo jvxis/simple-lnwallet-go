@@ -22,13 +22,11 @@ Se estiver no **Raspberry Pi 4**, instale `xxd` para extrair os arquivos:
 ```bash
 sudo apt update && sudo apt install xxd -y
 ```
-## **2. Instalando as dependências**
-Clone este repositório e instale os pacotes:
+## **2. Instalando o Binário**
+Basta fazer o download do Binário
+*Windows: final .exe*
+https://github.com/jvxis/simple-lnwallet-go/releases
 
-```bash
-git clone https://github.com/jvxis/simple-lnwallet-go.git
-cd simple-lnwallet
-```
 ## **3. Extraindo as Credenciais do LND**
 Executar no diretório `/home/admin`
 ```bash
