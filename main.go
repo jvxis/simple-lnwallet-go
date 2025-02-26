@@ -1,6 +1,8 @@
 package main
 
 import (
+    "embed"
+    "io/fs"
     "context"
     "crypto/x509"
     "encoding/hex"
@@ -47,6 +49,12 @@ func (m macaroonCredential) RequireTransportSecurity() bool {
     return true
 }
 
+//go:embed templates/*
+var templatesFS embed.FS
+
+//go:embed static/*
+var staticFS embed.FS
+
 func main() {
     // Inicializar banco de dados BoltDB
     var err error
@@ -83,7 +91,11 @@ func main() {
     router.HTMLRender = createRenderer()
     log.Println("✅ Templates carregados com sucesso!")
     
-    router.Static("/static", "./static")
+    staticContent, err := fs.Sub(staticFS, "static")
+    if err != nil {
+        log.Fatal(err)
+    }
+    router.StaticFS("/static", http.FS(staticContent))
     
     router.GET("/", indexHandler)
     router.POST("/", saveNodeHandler)
@@ -139,15 +151,33 @@ func createRenderer() multitemplate.Renderer {
             }
         },
     }
-    // Usando AddFromFilesFuncs para aplicar as funções do template
-    r.AddFromFilesFuncs("index", funcMap, "templates/base.html", "templates/index.html")
-    r.AddFromFilesFuncs("dashboard", funcMap, "templates/base.html", "templates/dashboard.html")
-    r.AddFromFilesFuncs("invoice", funcMap, "templates/base.html", "templates/invoice.html")
-    r.AddFromFilesFuncs("pay", funcMap, "templates/base.html", "templates/pay.html")
-    
-    // Adicione outros produtos, se necessário.
+
+    // 1) Carregamos "base.html" que agora tem {{ define "base" }}
+    baseTmpl := template.Must(template.New("base").
+        Funcs(funcMap).
+        ParseFS(templatesFS, "templates/base.html"))
+
+    // 2) Mapeamos cada página ao seu arquivo
+    pages := map[string]string{
+        "index":     "templates/index.html",
+        "dashboard": "templates/dashboard.html",
+        "invoice":   "templates/invoice.html",
+        "pay":       "templates/pay.html",
+    }
+
+    // 3) Para cada página, clonamos o base e parseamos o arquivo específico
+    for name, page := range pages {
+        tmpl := template.Must(baseTmpl.Clone())
+        tmpl = template.Must(tmpl.ParseFS(templatesFS, page))
+        
+        // Adiciona ao multitemplate com o nome da rota (ex: "index")
+        r.Add(name, tmpl)
+    }
+
     return r
 }
+
+
 
 // Conectar ao node LND via gRPC
 func connectLND(address, macaroonHex, tlsCertHex string) (lnrpc.LightningClient, error) {
@@ -210,6 +240,7 @@ func indexHandler(c *gin.Context) {
         "Nodes": nodes,
     })
 }
+
 
 // Salvar node no banco
 func saveNodeHandler(c *gin.Context) {
