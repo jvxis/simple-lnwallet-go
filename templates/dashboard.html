@@ -1,0 +1,24 @@
+{{ define "content" }}
+<h2>📡 Node Status</h2>
+<pre>
+Alias do Node:   {{ .NodeInfo.Alias }}
+Versão do LND:   {{ .NodeInfo.Version }}
+Número de Canais: {{ .NodeInfo.NumActiveChannels }}
+
+🔄 Sincronizado com Blockchain: {{ .SyncedToChain }}
+🌍 Sincronizado com Rede Lightning: {{ .SyncedToGraph }}
+</pre>
+
+<h2>💰 Saldo</h2>
+<pre>
+Saldo Onchain:   {{ formatSat .Balance.ConfirmedBalance }} sats ({{ toBTC .Balance.ConfirmedBalance }} BTC) 
+Saldo Lightning: {{ formatSat .ChannelBalance.LocalBalance.Sat }} sats ({{ toBTC .ChannelBalance.LocalBalance.Sat }} BTC)
+</pre>
+
+<div class="menu">
+    <a href="/invoice">⚡ Criar Fatura</a>
+    <a href="/pay">💸 Pagar Fatura</a>
+
+    <a href="/">🔌 Voltar a Conexão</a>
+</div>
+{{ end }}

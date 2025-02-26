@@ -1,0 +1,36 @@
+{{ define "content" }}
+<h2>🔌 Conectar ao Node Lightning</h2>
+
+{{ if .ErrorMessage }}
+<div class="error-box">
+    {{ .ErrorMessage }}
+</div>
+{{ end }}
+
+<form method="post">
+    <label>Endereço gRPC:</label>
+    <input type="text" name="node_address" placeholder="Ex: node-ip:10009" required>
+
+    <label>Macaroon HEX:</label>
+    <input type="text" name="macaroon_hex" placeholder="Cole o macaroon em HEX" required>
+
+    <label>TLS Cert HEX:</label>
+    <input type="text" name="tls_cert_hex" placeholder="Cole o TLS Cert em HEX" required>
+
+    <button type="submit">🔗 Conectar</button>
+</form>
+
+{{ if .Nodes }}
+<h3>🔍 Nodes Salvos</h3>
+<div class="nodes-list">
+    {{ range .Nodes }}
+    <form method="post">
+        <input type="hidden" name="node_address" value="{{ .Address }}">
+        <input type="hidden" name="macaroon_hex" value="{{ .MacaroonHex }}">
+        <input type="hidden" name="tls_cert_hex" value="{{ .TLSCertHex }}">
+        <button type="submit">🌐 {{ .Alias }}</button>
+    </form>
+    {{ end }}
+</div>
+{{ end }}
+{{ end }}

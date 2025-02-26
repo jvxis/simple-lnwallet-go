@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .title }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" type="image/png" href="/static/favicon-96x96.png" sizes="96x96">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="shortcut icon" href="/static/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+    <link rel="manifest" href="/static/site.webmanifest">
+</head>
+<body>
+    <div class="terminal">
+        <h1 class="title">⚡ Lightning Wallet CLI</h1>
+        <div class="content">
+            {{ template "content" . }}
+        </div>
+        <footer class="footer">
+            <small><a href="https://br-ln.com" target="_blank">Powered By BR⚡LN</a></small>
+        </footer>
+    </div>
+</body>
+</html>

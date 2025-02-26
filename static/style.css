@@ -1,0 +1,278 @@
+/* Estilo de terminal CLI */
+body {
+    font-family: "Courier New", monospace;
+    background-color: #000;
+    color: #00ff00;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+/* Terminal container */
+.terminal {
+    width: 95%;
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    border: 2px solid #00ff00;
+    background-color: #111;
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px #00ff00;
+}
+
+/* Títulos com efeito neon */
+h1, h2 {
+    color: #00ff00;
+    text-shadow: 0px 0px 5px #00ff00;
+    font-size: 22px;
+}
+
+/* Ajuste de caixas de texto */
+pre {
+    font-size: 16px;
+    background: #222;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: left;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    overflow-x: auto;
+}
+
+/* Menu de navegação */
+.menu {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+    margin-bottom: 40px;
+}
+
+.menu a {
+    flex: 1 1 0;
+    min-width: 140px;
+    padding: 12px;
+    text-decoration: none;
+    color: #00ff00;
+    border: 1px solid #00ff00;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 16px;
+    transition: background 0.3s;
+}
+
+.menu a:hover {
+    background: #00ff00;
+    color: #000;
+}
+
+/* Ajustando inputs e botões */
+input, button {
+    width: calc(100% - 20px);
+    padding: 10px;
+    margin: 5px 0;
+    border: 1px solid #00ff00;
+    border-radius: 3px;
+    background: #111;
+    color: #00ff00;
+    font-family: "Courier New", monospace;
+    text-align: center;
+    font-size: 16px;
+}
+
+/* Placeholder de inputs */
+input::placeholder {
+    color: #00aa00;
+    opacity: 0.8;
+}
+
+/* Botão estilizado */
+button {
+    cursor: pointer;
+    font-weight: bold;
+}
+
+button:hover {
+    background: #00ff00;
+    color: #000;
+}
+
+/* Área da fatura gerada */
+.invoice-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #222;
+    padding: 10px;
+    border-radius: 5px;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+/* Campo da fatura */
+.invoice-box input {
+    width: 100%;
+    text-align: left;
+    font-size: 14px;
+    overflow-x: auto;
+    border: none;
+    background: #333;
+    color: #00ff00;
+    padding: 5px;
+    border-radius: 3px;
+}
+
+/* Botão copiar fatura */
+.invoice-box button {
+    margin-top: 5px;
+}
+
+/* Estilização do QR Code */
+.qr-code {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+}
+
+.qr-code img {
+    width: 200px;
+    height: 200px;
+    border: 3px solid #00ff00;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+/* 🔹 Melhorias na exibição do JSON formatado */
+.payment-box {
+    background: #222;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: left;
+    max-width: 100%;
+    overflow-x: auto;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    font-size: 14px;
+}
+
+/* Ajusta a exibição do JSON formatado */
+.payment-box pre {
+    font-size: 14px;
+    background: #222;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: left;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    overflow-x: auto;
+}
+
+/* Lista de nodes salvos */
+.nodes-list {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.nodes-list button {
+    width: 100%;
+    max-width: 400px;
+    margin: 5px 0;
+    padding: 10px;
+    background: #222;
+    color: #00ff00;
+    border: 1px solid #00ff00;
+    border-radius: 3px;
+    text-align: center;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.nodes-list button:hover {
+    background: #00ff00;
+    color: #000;
+}
+
+/* Caixa de erro para mensagens amigáveis */
+.error-box {
+    background-color: #ff0000;
+    color: #fff;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+/* 🔹 Ajuste para seções como "Node Status" e "Saldo" */
+.section-box {
+    background: #222;
+    padding: 15px;
+    border-radius: 8px;
+    max-width: 95%;
+    margin: 10px auto;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* 🔹 Melhorando exibição dos status de sincronização */
+.status-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+/* Ícones e labels dentro do status */
+.status-box span {
+    font-size: 18px;
+}
+.footer {
+    display: block;
+    text-align: center;
+    font-size: 12px;
+    margin-top: 35px;
+    margin-left: auto;
+    margin-right: auto;
+    color: #aaa;
+}
+.footer a {
+    color: #00ff00; /* cor verde */
+    text-decoration: none;
+}
+
+.footer a:hover {
+    text-decoration: underline;
+}
+#reader {
+    width: 400px;    /* Aumenta a área para 400px; ajuste conforme necessário */
+    height: 400px;
+    margin: 20px auto;  /* Centraliza horizontalmente com margem top/bottom */
+  }
+/* 🔹 Ajuste final para telas menores */
+@media screen and (max-width: 768px) {
+    .terminal {
+        width: 90%;
+        padding: 15px;
+    }
+
+    h1 {
+        font-size: 16px;
+    }
+    pre {
+        font-size: 14px;
+    }
+
+    .menu a {
+        flex: 1 1 0;
+    }
+
+    .status-box span {
+        font-size: 12px;
+    }
+    .footer {
+        font-size: 10px;
+    }
+}

@@ -1,0 +1,6 @@
+*.proto
+*.db
+*.lock
+*.exe
+simple-lnwallet
+simple-lnwallet.exe
