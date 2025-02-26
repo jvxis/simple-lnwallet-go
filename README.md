@@ -24,14 +24,17 @@ sudo apt update && sudo apt install xxd -y
 ```
 ## **2. Instalando o Binário**
 Basta fazer o download do Binário
+
 *Windows: final .exe*
 Clicar no link para Download
 https://github.com/jvxis/simple-lnwallet-go/releases/download/v.0.0.1/simple-lnwallet.exe
+
 *Linux*
 ```bash
 wget https://github.com/jvxis/simple-lnwallet-go/releases/download/v.0.0.1/simple-lnwallet
 chmod +x simple-lnwallet
 ```
+
 *MacOs*
 Clicar no link para download
 https://github.com/jvxis/simple-lnwallet-go/releases/download/v.0.0.1/simple-lnwallet-mac.exe
