@@ -82,5 +82,3 @@ Se não houver erros, reinicie o Nginx:
 ```bash
 sudo systemctl restart nginx
 ```
-```bash
-sudo systemctl restart nginx
