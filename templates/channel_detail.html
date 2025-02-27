@@ -1,0 +1,86 @@
+{{ define "content" }}
+<h2>Detalhes do Canal</h2>
+<p><strong>Alias:</strong> {{ .Channel.Alias }}</p>
+<p><strong>Channel ID:</strong> {{ .Channel.ChanId }}</p>
+<p><strong>Capacidade:</strong> {{ formatSat .Channel.Capacity }} sats</p>
+
+{{ if .Channel.Node1Policy }}
+  <h3>Suas Políticas</h3>
+  <div class="policy">
+    <div class="policy-row">
+      <span class="policy-label">Fee Base (msat):</span>
+      <span class="policy-value">{{ formatSat .Channel.Node1Policy.FeeBaseMsat }}</span>
+      <span class="policy-label">Fee Rate (ppm):</span>
+      <span class="policy-value">{{ .Channel.Node1Policy.FeeRateMilliMsat }}</span>
+    </div>
+    <div class="policy-row">
+      <span class="policy-label">Inbound Fee Base (msat):</span>
+      <span class="policy-value">{{ formatSat .Channel.Node1Policy.InboundFeeBaseMsat }}</span>
+      <span class="policy-label">Inbound Fee Rate (ppm):</span>
+      <span class="policy-value">{{ .Channel.Node1Policy.InboundFeeRateMilliMsat }}</span>
+    </div>
+    <div class="policy-row">
+      <span class="policy-label">Min HTLC:</span>
+      <span class="policy-value">{{ .Channel.Node1Policy.MinHtlc }}</span>
+      <span class="policy-label">Max HTLC:</span>
+      <span class="policy-value">{{ formatSat .Channel.Node1Policy.MaxHtlcMsat }}</span>
+    </div>
+    <div class="policy-row">
+      <span class="policy-label">Time Lock Delta:</span>
+      <span class="policy-value">{{ .Channel.Node1Policy.TimeLockDelta }}</span>
+    </div>
+    <div class="policy-row">
+      <span class="policy-label">Status:</span>
+      <span class="policy-value">
+         {{ if .Channel.Node1Policy.Disabled }}Desativado{{ else }}Ativo{{ end }}
+      </span>
+      <span class="policy-label">Last Update:</span>
+      <span class="policy-value">{{ formatTimestamp .Channel.Node1Policy.LastUpdate }}</span>
+    </div>
+  </div>
+{{ else }}
+  <p>Política de roteamento do Node conectado não disponível.</p>
+{{ end }}
+
+{{ if .Channel.Node2Policy }}
+  <h3>{{ .Channel.Alias }}</h3>
+  <div class="policy">
+    <div class="policy-row">
+      <span class="policy-label">Fee Base (msat):</span>
+      <span class="policy-value">{{ formatSat .Channel.Node2Policy.FeeBaseMsat }}</span>
+      <span class="policy-label">Fee Rate (ppm):</span>
+      <span class="policy-value">{{ .Channel.Node2Policy.FeeRateMilliMsat }}</span>
+    </div>
+    <div class="policy-row">
+      <span class="policy-label">Inbound Fee Base (msat):</span>
+      <span class="policy-value">{{ formatSat .Channel.Node2Policy.InboundFeeBaseMsat }}</span>
+      <span class="policy-label">Inbound Fee Rate (ppm):</span>
+      <span class="policy-value">{{ .Channel.Node2Policy.InboundFeeRateMilliMsat }}</span>
+    </div>
+    <div class="policy-row">
+        <span class="policy-label">Min HTLC:</span>
+        <span class="policy-value">{{ .Channel.Node1Policy.MinHtlc }}</span>
+        <span class="policy-label">Max HTLC:</span>
+        <span class="policy-value">{{ formatSat .Channel.Node1Policy.MaxHtlcMsat }}</span>
+    </div>
+    <div class="policy-row">
+      <span class="policy-label">Time Lock Delta:</span>
+      <span class="policy-value">{{ .Channel.Node2Policy.TimeLockDelta }}</span>
+    </div>
+    <div class="policy-row">
+      <span class="policy-label">Status:</span>
+      <span class="policy-value">
+         {{ if .Channel.Node2Policy.Disabled }}Desativado{{ else }}Ativo{{ end }}
+      </span>
+      <span class="policy-label">Last Update:</span>
+      <span class="policy-value">{{ formatTimestamp .Channel.Node2Policy.LastUpdate }}</span>
+    </div>
+  </div>
+{{ else }}
+  <p>Política de roteamento do Node selecionado não disponível.</p>
+{{ end }}
+
+<div class="menu">
+    <a href="/channels">← Voltar para a lista de canais</a>
+</div>
+{{ end }}

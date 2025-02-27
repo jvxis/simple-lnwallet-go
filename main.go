@@ -14,6 +14,7 @@ import (
     "os"
     "time"
     "html/template"
+    "sort"
 
     "github.com/boltdb/bolt"
     "github.com/gin-contrib/sessions"
@@ -35,6 +36,21 @@ type Node struct {
     Address     string `json:"address"`
     MacaroonHex string `json:"macaroon_hex"`
     TLSCertHex  string `json:"tls_cert_hex"`
+}
+
+type ChannelItem struct {
+    Alias        string
+    Capacity     int64
+    LocalBalance int64
+    ChanId       uint64  // novo campo para identificar o canal
+}
+
+type ChannelDetail struct {
+    Alias    string
+    ChanId   uint64
+    Capacity int64
+    Node1Policy *lnrpc.RoutingPolicy
+    Node2Policy *lnrpc.RoutingPolicy
 }
 
 type macaroonCredential struct {
@@ -104,6 +120,8 @@ func main() {
     router.POST("/invoice", createInvoiceHandler)
     router.GET("/pay", payHandler)
     router.POST("/pay", payInvoiceHandler)
+    router.GET("/channels", listChannelsHandler)
+    router.GET("/channels/:chanPoint", showChannelHandler)
     
     log.Printf("🚀 Servidor iniciando na porta :35671")
     router.Run(":35671")
@@ -150,6 +168,13 @@ func createRenderer() multitemplate.Renderer {
                 return fmt.Sprintf("%v", v)
             }
         },
+        "formatTimestamp": func(ts interface{}) string {
+        // Supondo que ts seja um número representando Unix timestamp em segundos
+            if t, ok := ts.(uint32); ok {
+                return time.Unix(int64(t), 0).Format("02.01.2006 15:04:05")
+            }
+            return fmt.Sprintf("%v", ts)
+        },
     }
 
     // 1) Carregamos "base.html" que agora tem {{ define "base" }}
@@ -163,6 +188,8 @@ func createRenderer() multitemplate.Renderer {
         "dashboard": "templates/dashboard.html",
         "invoice":   "templates/invoice.html",
         "pay":       "templates/pay.html",
+        "channels":  "templates/channels.html",
+        "channel_detail": "templates/channel_detail.html",
     }
 
     // 3) Para cada página, clonamos o base e parseamos o arquivo específico
@@ -451,4 +478,121 @@ func payHandler(c *gin.Context) {
         return
     }
     c.HTML(http.StatusOK, "pay", nil)
+}
+func listChannelsHandler(c *gin.Context) {
+    session := sessions.Default(c)
+    addrI := session.Get("node_address")
+    if addrI == nil {
+        c.Redirect(http.StatusFound, "/")
+        return
+    }
+    addr := addrI.(string)
+    // Recupera o node do banco
+    node, err := getNodeByAddress(addr)
+    if err != nil {
+        c.String(http.StatusInternalServerError, "Erro ao recuperar node: %v", err)
+        return
+    }
+    client, err := connectLND(node.Address, node.MacaroonHex, node.TLSCertHex)
+    if err != nil {
+        c.String(http.StatusInternalServerError, "Erro ao conectar ao LND: %v", err)
+        return
+    }
+    // Chama o ListChannels para obter os canais abertos
+    channelsResp, err := client.ListChannels(context.Background(), &lnrpc.ListChannelsRequest{})
+    if err != nil {
+        c.String(http.StatusInternalServerError, "Erro ao listar canais: %v", err)
+        return
+    }
+
+    // Para cada canal, consulte o alias do nó remoto
+    var channelItems []ChannelItem
+    for _, channel := range channelsResp.Channels {
+        // Obter o alias do nó remoto usando GetNodeInfo
+        nodeInfo, err := client.GetNodeInfo(context.Background(), &lnrpc.NodeInfoRequest{
+            PubKey: channel.RemotePubkey,
+        })
+        var alias string
+        if err != nil || nodeInfo.Node == nil {
+            alias = channel.RemotePubkey // se erro, usa o pubkey como fallback
+        } else {
+            alias = nodeInfo.Node.Alias
+        }
+
+        channelItems = append(channelItems, ChannelItem{
+            Alias:        alias,
+            Capacity:     channel.Capacity,
+            LocalBalance: channel.LocalBalance,
+            ChanId:       channel.ChanId,
+        })
+    }
+    sort.Slice(channelItems, func(i, j int) bool {
+        return channelItems[i].LocalBalance < channelItems[j].LocalBalance
+    })
+    c.HTML(http.StatusOK, "channels", gin.H{
+        "Channels": channelItems,
+        "title":    "Canais do Node",
+    })
+}
+
+func showChannelHandler(c *gin.Context) {
+    chanIdStr := c.Param("chanPoint")
+    chanId, err := strconv.ParseUint(chanIdStr, 10, 64)
+    if err != nil {
+        c.String(http.StatusBadRequest, "ID de canal inválido: %v", err)
+        return
+    }
+
+    session := sessions.Default(c)
+    addrI := session.Get("node_address")
+    if addrI == nil {
+        c.Redirect(http.StatusFound, "/")
+        return
+    }
+    addr := addrI.(string)
+
+    node, err := getNodeByAddress(addr)
+    if err != nil {
+        c.String(http.StatusInternalServerError, "Erro ao recuperar node: %v", err)
+        return
+    }
+    client, err := connectLND(node.Address, node.MacaroonHex, node.TLSCertHex)
+    if err != nil {
+        c.String(http.StatusInternalServerError, "Erro ao conectar ao LND: %v", err)
+        return
+    }
+    
+    // Obtém as informações do canal (objeto do tipo *lnrpc.ChannelEdge)
+    chanInfo, err := client.GetChanInfo(context.Background(), &lnrpc.ChanInfoRequest{
+        ChanId: chanId,
+    })
+    if err != nil {
+        c.String(http.StatusInternalServerError, "Erro ao recuperar dados do canal: %v", err)
+        return
+    }
+    
+    // Para exibir o alias, buscamos as informações de um dos nós participantes.
+    // Aqui usamos o campo Node2Pub (substitua por Node1Pub se for o caso)
+    var alias string
+    nodeInfo, err := client.GetNodeInfo(context.Background(), &lnrpc.NodeInfoRequest{
+        PubKey: chanInfo.Node2Pub,
+    })
+    if err != nil || nodeInfo.Node == nil {
+        alias = chanInfo.Node2Pub
+    } else {
+        alias = nodeInfo.Node.Alias
+    }
+    
+    detail := ChannelDetail{
+        Alias:    alias,
+        ChanId:   chanInfo.ChannelId,   // acesso direto ao campo
+        Capacity: chanInfo.Capacity,  // acesso direto ao campo
+        Node1Policy: chanInfo.Node1Policy,
+        Node2Policy: chanInfo.Node2Policy,
+    }
+    
+    c.HTML(http.StatusOK, "channel_detail", gin.H{
+        "Channel": detail,
+        "title":   "Detalhes do Canal",
+    })
 }

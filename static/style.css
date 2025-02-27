@@ -251,6 +251,51 @@ button:hover {
     height: 400px;
     margin: 20px auto;  /* Centraliza horizontalmente com margem top/bottom */
   }
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+.content {
+    max-height: 85vh;  /* Limita a altura */
+    overflow-y: auto;  /* Barra de rolagem vertical quando necessário */
+    overflow-x: auto; /* Oculta barra horizontal */
+}
+.channels-container {
+    font-size: 14px;
+}
+/* Alinha a primeira coluna (Alias) à esquerda */
+.channels-container table td:nth-child(1),
+.channels-container table th:nth-child(1) {
+    text-align: left;
+}
+
+/* Garante que as colunas 2 e 3 fiquem à esquerda com um padding extra */
+.channels-container table td:nth-child(2),
+.channels-container table th:nth-child(2),
+.channels-container table td:nth-child(3),
+.channels-container table th:nth-child(3) {
+    text-align: left;
+    padding-right: 20px; /* ajuste conforme necessário */
+}
+.policy {
+    border: 1px solid #00ff00;
+    background: #222;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+.policy-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+.policy-label {
+    font-weight: bold;
+    margin-right: 5px;
+}
+.policy-value {
+    margin-right: 20px;
+}
 /* 🔹 Ajuste final para telas menores */
 @media screen and (max-width: 768px) {
     .terminal {
@@ -274,5 +319,11 @@ button:hover {
     }
     .footer {
         font-size: 10px;
+    }
+    .channels-container {
+        font-size: 12px;
+    }
+    .policy {
+        font-size: 12px;
     }
 }

@@ -1,0 +1,30 @@
+{{ define "content" }}
+<h2>Canais Disponíveis</h2>
+<div class="channels-container">
+<table>
+    <thead>
+        <tr>
+            <th>Canal (Alias)</th>
+            <th>Capacidade (sats)</th>
+            <th>Saldo (sats)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{ range .Channels }}
+        <tr onclick="window.location='/channels/{{ .ChanId }}'" style="cursor:pointer;">
+            <td>{{ .Alias }}</td>
+            <td>{{ formatSat .Capacity }}</td>
+            <td>{{ formatSat .LocalBalance }}</td>
+        </tr>
+        {{ else }}
+        <tr>
+            <td colspan="3">Nenhum canal aberto encontrado.</td>
+        </tr>
+        {{ end }}
+    </tbody>
+</table>
+</div>
+<div class="menu">
+    <a href="/dashboard">🏠 Voltar ao Dashboard</a>
+</div>
+{{ end }}
