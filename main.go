@@ -245,7 +245,7 @@ func connectLND(address, macaroonHex, tlsCertHex string) (lnrpc.LightningClient,
     client := lnrpc.NewLightningClient(conn)
 
     // Testar a conexão com GetInfo usando um timeout
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
     defer cancel()
 
     _, err = client.GetInfo(ctx, &lnrpc.GetInfoRequest{})
