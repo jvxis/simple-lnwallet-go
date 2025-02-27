@@ -24,8 +24,20 @@ sudo apt update && sudo apt install xxd -y
 ```
 ## **2. Instalando o Binário**
 Basta fazer o download do Binário
+
 *Windows: final .exe*
-https://github.com/jvxis/simple-lnwallet-go/releases
+Clicar no link para Download
+https://github.com/jvxis/simple-lnwallet-go/releases/download/v.0.0.1/simple-lnwallet.exe
+
+*Linux*
+```bash
+wget https://github.com/jvxis/simple-lnwallet-go/releases/download/v.0.0.1/simple-lnwallet
+chmod +x simple-lnwallet
+```
+
+*MacOs*
+Clicar no link para download
+https://github.com/jvxis/simple-lnwallet-go/releases/download/v.0.0.1/simple-lnwallet-mac.exe
 
 ## **3. Extraindo as Credenciais do LND**
 Executar no diretório `/home/admin`
@@ -45,8 +57,13 @@ Abrir o linha de comando CMD
 ```bash
 simple-lnwallet
 ```
+###MacOs
+```bash
+./simple-lnwallet-mac
+```
 
 **Você acessa a app com http://nome-maquina:35671**
 ## **Importante**
 **Para habitar a leitura de QRCODE via dispositivos móveis, precisa fazer o acesso com https.**
-**Para tal você precisa instalar certificados self-sign na máquina host**
+**Para tal você precisa instalar certificados self-sign na máquina host - Instruções abaixo**
+https://github.com/jvxis/simple-lnwallet-go/blob/main/self-certificate.md
