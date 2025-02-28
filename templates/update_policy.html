@@ -1,0 +1,38 @@
+{{ define "content" }}
+<h2>Alterar Políticas - {{ .Channel.Alias }}</h2>
+{{ if .Error }}
+<div class="error-box">
+    {{ .Error }}
+</div>
+{{ end }}
+<form class="policy-update" method="POST" action="/policy/update">
+    <!-- Envie o channel point oculto -->
+    <input type="hidden" name="chan_point" value="{{ .Channel.ChanPoint }}">
+    <input type="hidden" name="chan_id" value="{{ .Channel.ChanId }}">
+    <input type="hidden" name="alias" value="{{ .Channel.Alias }}">
+    <div class="policy-update-row">
+        <label for="fee_base_msat">Fee Base (msat):</label>
+        <input type="number" name="fee_base_msat" id="fee_base_msat" value="{{ .Channel.Node1Policy.FeeBaseMsat }}">
+    </div>
+    <div class="policy-update-row">
+        <label for="fee_rate_milli_msat">Fee Rate (ppm):</label>
+        <input type="number" name="fee_rate_milli_msat" id="fee_rate_milli_msat" step="1" value="{{ .Channel.Node1Policy.FeeRateMilliMsat }}">
+    </div>
+    <div class="policy-update-row">
+        <label for="inbound_fee_base_msat">Inbound Fee Base (msat):</label>
+        <input type="number" name="inbound_fee_base_msat" id="inbound_fee_base_msat" value="{{ .Channel.Node1Policy.InboundFeeBaseMsat }}">
+    </div>
+    <div class="policy-update-row">
+        <label for="inbound_fee_rate_milli_msat">Inbound Fee Rate (ppm):</label>
+        <input type="number" name="inbound_fee_rate_milli_msat" id="inbound_fee_rate_milli_msat" step="-1" value="{{ .Channel.Node1Policy.InboundFeeRateMilliMsat }}">
+    </div>
+    <div class="policy-update-row">
+        <label for="time_lock_delta">Time Lock Delta:</label>
+        <input type="number" name="time_lock_delta" id="time_lock_delta" value="{{ .Channel.Node1Policy.TimeLockDelta }}">
+    </div>
+    <button type="submit" class="btn-update">Salvar Alterações</button>
+</form>
+<div class="menu">
+    <a href="/channels/{{ .Channel.ChanId }}?alias={{ .Channel.Alias }}">← Voltar aos detalhes do canal</a>
+</div>
+{{ end }}

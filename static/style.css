@@ -276,9 +276,19 @@ button:hover {
     text-align: left;
     padding-right: 20px; /* ajuste conforme necessário */
 }
+/* Ajusta a fonte para os dados do canal */
+.channel-info {
+    font-size: 0.9em; /* 90% do tamanho padrão, ajuste conforme necessário */
+}
+
+/* Ajuste específico para o channel point, caso seja muito longo */
+.chan-point {
+    font-size: 0.8em;  /* ainda menor */
+    word-break: break-all;
+}
 .policy {
     border: 1px solid #00ff00;
-    background: #222;
+    background: #001307;
     padding: 15px;
     margin-bottom: 20px;
     border-radius: 5px;
@@ -295,6 +305,13 @@ button:hover {
 }
 .policy-value {
     margin-right: 20px;
+}
+.policy-update input[type="number"] {
+    background-color: #003300; /* Fundo verde escuro */
+    color: #ffffff; /* Texto branco */
+    border: 1px solid #00ff00; /* Borda verde */
+    padding: 5px;
+    border-radius: 3px;
 }
 /* 🔹 Ajuste final para telas menores */
 @media screen and (max-width: 768px) {
@@ -322,6 +339,14 @@ button:hover {
     }
     .channels-container {
         font-size: 12px;
+    }
+    .channel-info {
+        font-size: 0.8em; /* 90% do tamanho padrão, ajuste conforme necessário */
+    }
+    
+    /* Ajuste específico para o channel point, caso seja muito longo */
+    .chan-point {
+        font-size: 0.7em;  /* ainda menor */
     }
     .policy {
         font-size: 12px;

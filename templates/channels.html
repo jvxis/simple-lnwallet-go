@@ -11,7 +11,7 @@
     </thead>
     <tbody>
         {{ range .Channels }}
-        <tr onclick="window.location='/channels/{{ .ChanId }}'" style="cursor:pointer;">
+        <tr onclick="window.location='/channels/{{ .ChanId }}?alias={{ .Alias }}'" style="cursor:pointer;">
             <td>{{ .Alias }}</td>
             <td>{{ formatSat .Capacity }}</td>
             <td>{{ formatSat .LocalBalance }}</td>

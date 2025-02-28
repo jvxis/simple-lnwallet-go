@@ -15,6 +15,8 @@ import (
     "time"
     "html/template"
     "sort"
+    "strings"
+    "net/url"
 
     "github.com/boltdb/bolt"
     "github.com/gin-contrib/sessions"
@@ -49,6 +51,7 @@ type ChannelDetail struct {
     Alias    string
     ChanId   uint64
     Capacity int64
+    ChanPoint    string
     Node1Policy *lnrpc.RoutingPolicy
     Node2Policy *lnrpc.RoutingPolicy
 }
@@ -121,7 +124,10 @@ func main() {
     router.GET("/pay", payHandler)
     router.POST("/pay", payInvoiceHandler)
     router.GET("/channels", listChannelsHandler)
-    router.GET("/channels/:chanPoint", showChannelHandler)
+    router.GET("/channels/:chanId", showChannelHandler)
+    router.GET("/policy/update", updatePolicyHandler)
+    router.POST("/policy/update", updatePolicyHandler)
+    router.GET("/policy/form", updatePolicyFormHandler)
     
     log.Printf("🚀 Servidor iniciando na porta :35671")
     router.Run(":35671")
@@ -190,6 +196,7 @@ func createRenderer() multitemplate.Renderer {
         "pay":       "templates/pay.html",
         "channels":  "templates/channels.html",
         "channel_detail": "templates/channel_detail.html",
+        "update_policy": "templates/update_policy.html",
     }
 
     // 3) Para cada página, clonamos o base e parseamos o arquivo específico
@@ -536,13 +543,19 @@ func listChannelsHandler(c *gin.Context) {
 }
 
 func showChannelHandler(c *gin.Context) {
-    chanIdStr := c.Param("chanPoint")
+    chanIdStr := c.Param("chanId")
     chanId, err := strconv.ParseUint(chanIdStr, 10, 64)
     if err != nil {
         c.String(http.StatusBadRequest, "ID de canal inválido: %v", err)
         return
     }
 
+    // Recupera o alias passado via query da listagem.
+    alias := c.Query("alias")
+    if alias == "" {
+        alias = "(Alias não disponível)"
+    }
+    
     session := sessions.Default(c)
     addrI := session.Get("node_address")
     if addrI == nil {
@@ -556,13 +569,14 @@ func showChannelHandler(c *gin.Context) {
         c.String(http.StatusInternalServerError, "Erro ao recuperar node: %v", err)
         return
     }
+
     client, err := connectLND(node.Address, node.MacaroonHex, node.TLSCertHex)
     if err != nil {
         c.String(http.StatusInternalServerError, "Erro ao conectar ao LND: %v", err)
         return
     }
     
-    // Obtém as informações do canal (objeto do tipo *lnrpc.ChannelEdge)
+    // Obtém informações do canal.
     chanInfo, err := client.GetChanInfo(context.Background(), &lnrpc.ChanInfoRequest{
         ChanId: chanId,
     })
@@ -571,28 +585,267 @@ func showChannelHandler(c *gin.Context) {
         return
     }
     
-    // Para exibir o alias, buscamos as informações de um dos nós participantes.
-    // Aqui usamos o campo Node2Pub (substitua por Node1Pub se for o caso)
-    var alias string
-    nodeInfo, err := client.GetNodeInfo(context.Background(), &lnrpc.NodeInfoRequest{
-        PubKey: chanInfo.Node2Pub,
-    })
-    if err != nil || nodeInfo.Node == nil {
-        alias = chanInfo.Node2Pub
-    } else {
-        alias = nodeInfo.Node.Alias
+    // Use GetInfo para obter a identidade do nó local.
+    localInfo, err := client.GetInfo(context.Background(), &lnrpc.GetInfoRequest{})
+    if err != nil {
+        c.String(http.StatusInternalServerError, "Erro ao recuperar dados do nó local: %v", err)
+        return
+    }
+    localPubKey := localInfo.IdentityPubkey
+
+    detail := ChannelDetail{
+        Alias:     alias,
+        ChanId:    chanInfo.ChannelId,
+        Capacity:  chanInfo.Capacity,
+        ChanPoint: chanInfo.ChanPoint,
     }
     
-    detail := ChannelDetail{
-        Alias:    alias,
-        ChanId:   chanInfo.ChannelId,   // acesso direto ao campo
-        Capacity: chanInfo.Capacity,  // acesso direto ao campo
-        Node1Policy: chanInfo.Node1Policy,
-        Node2Policy: chanInfo.Node2Policy,
+    // Determina qual política é do nó local comparando as pubkeys.
+    // Supondo que chanInfo.Node1Pub e chanInfo.Node2Pub estão disponíveis.
+    if localPubKey == chanInfo.Node1Pub {
+        detail.Node1Policy = chanInfo.Node1Policy  // politica do nó local
+        detail.Node2Policy = chanInfo.Node2Policy  // politica do nó remoto
+    } else if localPubKey == chanInfo.Node2Pub {
+        detail.Node1Policy = chanInfo.Node2Policy  // politica do nó local
+        detail.Node2Policy = chanInfo.Node1Policy  // politica do nó remoto
+    } else {
+        // Caso não coincida, use os valores originais e informe
+        detail.Node1Policy = chanInfo.Node1Policy
+        detail.Node2Policy = chanInfo.Node2Policy
+        log.Println("A pubkey local não coincide com Node1Pub ou Node2Pub do canal.")
     }
     
     c.HTML(http.StatusOK, "channel_detail", gin.H{
         "Channel": detail,
         "title":   "Detalhes do Canal",
     })
+}
+
+func updatePolicyFormHandler(c *gin.Context) {
+    // Recupera o channel point via query string.
+    chanPoint := c.Query("chan_point")
+    if chanPoint == "" {
+        c.String(http.StatusBadRequest, "Channel point não informado")
+        return
+    }
+    // Tenta recuperar o alias passado na query (da listagem)
+    aliasQuery := c.Query("alias")
+    
+    var detail ChannelDetail // declara a variável antes de usá-la
+    if aliasQuery != "" {
+        detail.Alias = aliasQuery
+    } else {
+        detail.Alias = "(Alias não disponível)"
+    }
+    
+    session := sessions.Default(c)
+    addrI := session.Get("node_address")
+    if addrI == nil {
+        c.Redirect(http.StatusFound, "/")
+        return
+    }
+    addr := addrI.(string)
+    node, err := getNodeByAddress(addr)
+    if err != nil {
+        c.String(http.StatusInternalServerError, "Erro ao recuperar node: %v", err)
+        return
+    }
+    
+    client, err := connectLND(node.Address, node.MacaroonHex, node.TLSCertHex)
+    if err != nil {
+        c.String(http.StatusInternalServerError, "Erro ao conectar ao LND: %v", err)
+        return
+    }
+    
+    // Obtenha a lista de canais e busque aquele cujo channel point bate
+    channelsResp, err := client.ListChannels(context.Background(), &lnrpc.ListChannelsRequest{})
+    if err != nil {
+        c.String(http.StatusInternalServerError, "Erro ao listar canais: %v", err)
+        return
+    }
+    
+    found := false
+    for _, ch := range channelsResp.Channels {
+        if ch.ChannelPoint == chanPoint {
+            // Preenche dados básicos do canal
+            detail.ChanPoint = ch.ChannelPoint
+            detail.ChanId = ch.ChanId
+            detail.Capacity = ch.Capacity
+            
+            // Obtenha as políticas atuais do canal
+            chanInfo, err := client.GetChanInfo(context.Background(), &lnrpc.ChanInfoRequest{
+                ChanId: ch.ChanId,
+            })
+            if err == nil {
+                // Agora recupere a pubkey do nó local
+                localInfo, err := client.GetInfo(context.Background(), &lnrpc.GetInfoRequest{})
+                if err != nil {
+                    c.String(http.StatusInternalServerError, "Erro ao recuperar dados do nó local: %v", err)
+                    return
+                }
+                localPubKey := localInfo.IdentityPubkey
+                // Determine qual política pertence ao nó local
+                if localPubKey == chanInfo.Node1Pub {
+                    detail.Node1Policy = chanInfo.Node1Policy
+                } else if localPubKey == chanInfo.Node2Pub {
+                    detail.Node1Policy = chanInfo.Node2Policy
+                } else {
+                    detail.Node1Policy = chanInfo.Node1Policy
+                    log.Println("A pubkey local não coincide com Node1Pub ou Node2Pub do canal.")
+                }
+            }
+            found = true
+            break
+        }
+    }
+    
+    if detail.Node1Policy == nil {
+        detail.Node1Policy = &lnrpc.RoutingPolicy{
+            FeeBaseMsat:            0,
+            FeeRateMilliMsat:       0,
+            InboundFeeBaseMsat:     0,
+            InboundFeeRateMilliMsat: 0,
+            TimeLockDelta:          0,
+        }
+    }
+    if !found {
+        c.String(http.StatusNotFound, "Canal não encontrado")
+        return
+    }
+    
+    c.HTML(http.StatusOK, "update_policy", gin.H{
+        "Channel": detail,
+        "title":   "Atualizar Políticas",
+    })
+}
+func updatePolicyHandler(c *gin.Context) {
+    // Recupera o node a partir da sessão.
+    session := sessions.Default(c)
+    addrI := session.Get("node_address")
+    if addrI == nil {
+        c.Redirect(http.StatusFound, "/")
+        return
+    }
+    addr := addrI.(string)
+    node, err := getNodeByAddress(addr)
+    if err != nil {
+        c.String(http.StatusInternalServerError, "Erro ao recuperar node: %v", err)
+        return
+    }
+
+    // Obtém os valores do formulário
+    chanPoint := c.PostForm("chan_point")
+    chanID := c.PostForm("chan_id")
+    alias := c.PostForm("alias")
+    feeBaseStr := c.PostForm("fee_base_msat")
+    feeRateStr := c.PostForm("fee_rate_milli_msat")
+    inboundFeeBaseStr := c.PostForm("inbound_fee_base_msat")
+    inboundFeeRateStr := c.PostForm("inbound_fee_rate_milli_msat")
+    timeLockDeltaStr := c.PostForm("time_lock_delta")
+
+    // Conversões necessárias
+    feeBase, err := strconv.ParseInt(feeBaseStr, 10, 64)
+    if err != nil {
+        c.String(http.StatusBadRequest, "Fee Base inválido")
+        return
+    }
+    feeRate, err := strconv.ParseFloat(feeRateStr, 64)
+    if err != nil {
+        c.String(http.StatusBadRequest, "Fee Rate inválido")
+        return
+    }
+    inboundFeeBase, err := strconv.ParseInt(inboundFeeBaseStr, 10, 64)
+    if err != nil {
+        c.String(http.StatusBadRequest, "Inbound Fee Base inválido")
+        return
+    }
+    inboundFeeRate, err := strconv.ParseInt(inboundFeeRateStr, 10, 64)
+    if err != nil {
+        c.String(http.StatusBadRequest, "Inbound Fee Rate inválido")
+        return
+    }
+    timeLockDelta, err := strconv.ParseUint(timeLockDeltaStr, 10, 32)
+    if err != nil {
+        c.String(http.StatusBadRequest, "Time Lock Delta inválido")
+        return
+    }
+
+    log.Printf("Valores recebidos do formulário: chanPoint=%s, chanID=%s, feeBase=%d, feeRate=%f, inboundFeeBase=%d, inboundFeeRate=%d, timeLockDelta=%d",
+        chanPoint, chanID, feeBase, feeRate, inboundFeeBase, inboundFeeRate, timeLockDelta)
+
+    parts := strings.Split(chanPoint, ":")
+    if len(parts) != 2 {
+        c.String(http.StatusBadRequest, "Formato do channel point inválido")
+        return
+    }
+    txidHex := parts[0]
+    outputIdx, err := strconv.ParseUint(parts[1], 10, 32)
+    if err != nil {
+        c.String(http.StatusBadRequest, "Output index inválido no channel point")
+        return
+    }
+
+    log.Printf("TXID: %s, Output Index: %d", txidHex, outputIdx)
+
+    // Converte feeRate para ppm
+    feeRatePpm := uint32(feeRate)
+
+    policyReq := &lnrpc.PolicyUpdateRequest{
+        BaseFeeMsat:   feeBase,
+        FeeRatePpm:    feeRatePpm,
+        TimeLockDelta: uint32(timeLockDelta),
+        InboundFee: &lnrpc.InboundFee{
+            BaseFeeMsat: int32(inboundFeeBase),
+            FeeRatePpm:  int32(inboundFeeRate),
+        },
+        Scope: &lnrpc.PolicyUpdateRequest_ChanPoint{
+            ChanPoint: &lnrpc.ChannelPoint{
+                FundingTxid: &lnrpc.ChannelPoint_FundingTxidStr{
+                    FundingTxidStr: txidHex,
+                },
+                OutputIndex: uint32(outputIdx),
+            },
+        },
+    }
+
+    log.Printf("Enviando PolicyUpdateRequest: %+v", policyReq)
+
+    // Conecta ao LND
+    client, err := connectLND(node.Address, node.MacaroonHex, node.TLSCertHex)
+    if err != nil {
+        c.String(http.StatusInternalServerError, "Erro ao conectar ao LND: %v", err)
+        return
+    }
+    
+    // Chama o método UpdateChannelPolicy
+    _, err = client.UpdateChannelPolicy(context.Background(), policyReq)
+    if err != nil {
+        log.Printf("Erro ao atualizar política: %v", err)
+        c.HTML(http.StatusOK, "update_policy", gin.H{
+            "title":   "Atualizar Políticas",
+            "Error":   fmt.Sprintf("Erro ao atualizar política: %v", err),
+            "Channel": gin.H{
+                "ChanPoint": chanPoint,
+                "ChanId": chanID,
+                "Alias": alias,
+                "Node1Policy": gin.H{
+                    "FeeBaseMsat": feeBase,
+                    "FeeRateMilliMsat": feeRate,
+                    "InboundFeeBaseMsat": inboundFeeBase,
+                    "InboundFeeRateMilliMsat": inboundFeeRate,
+                    "TimeLockDelta": timeLockDelta,
+                },
+            },
+        })
+        return
+    }
+
+    
+    log.Printf("Alias recebido do formulário: %q", alias)
+    if alias == "" {
+        alias = "(Alias não disponível)"
+    }
+    // Reutiliza a variável chanID já obtida do formulário (não re-declarada)
+    redirectURL := fmt.Sprintf("/channels/%s?alias=%s", chanID, url.QueryEscape(alias))
+    c.Redirect(http.StatusFound, redirectURL)
 }

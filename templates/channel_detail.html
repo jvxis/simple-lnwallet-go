@@ -1,8 +1,9 @@
 {{ define "content" }}
 <h2>Detalhes do Canal</h2>
-<p><strong>Alias:</strong> {{ .Channel.Alias }}</p>
-<p><strong>Channel ID:</strong> {{ .Channel.ChanId }}</p>
-<p><strong>Capacidade:</strong> {{ formatSat .Channel.Capacity }} sats</p>
+<p class="channel-info"><strong>Alias:</strong> {{ .Channel.Alias }}</p>
+<p class="channel-info chan-point"><strong>Channel Point:</strong> {{ .Channel.ChanPoint }}</p>
+<p class="channel-info"><strong>Channel ID:</strong> {{ .Channel.ChanId }}</p>
+<p class="channel-info"><strong>Capacidade:</strong> {{ formatSat .Channel.Capacity }} sats</p>
 
 {{ if .Channel.Node1Policy }}
   <h3>Suas Políticas</h3>
@@ -37,6 +38,9 @@
       <span class="policy-label">Last Update:</span>
       <span class="policy-value">{{ formatTimestamp .Channel.Node1Policy.LastUpdate }}</span>
     </div>
+    <div class="menu">
+      <a href="/policy/form?chan_point={{ .Channel.ChanPoint }}&alias={{ .Channel.Alias }}" class="btn-update">Alterar Políticas</a>
+  </div>
   </div>
 {{ else }}
   <p>Política de roteamento do Node conectado não disponível.</p>
