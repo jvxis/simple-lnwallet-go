@@ -62,8 +62,11 @@ simple-lnwallet
 ./simple-lnwallet-mac
 ```
 
-**Você acessa a app com http://nome-maquina:35671**
+**Você acessa a app com `http://nome-maquina:35671`**
+
+**Recomendamos o uso via VPN ou Tailscale. Assim na tela de conexão pode usar o `nome-da-maquina:10009` ou `ip-vpn:10009` ou `ip-tailscale:10009`**
+
 ## **Importante**
 **Para habitar a leitura de QRCODE via dispositivos móveis, precisa fazer o acesso com https.**
-**Para tal você precisa instalar certificados self-sign na máquina host - Instruções abaixo**
+**Para tal você precisa instalar certificados self-sign na máquina host e criar um proxy reverso - Instruções abaixo**
 https://github.com/jvxis/simple-lnwallet-go/blob/main/self-certificate.md
