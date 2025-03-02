@@ -142,6 +142,31 @@ button:hover {
     padding: 5px;
     border-radius: 5px;
 }
+#reader {
+    width: 100%;
+    max-width: 400px;
+    height: 400px;
+    margin: 20px auto;
+    position: relative;
+}
+
+#reader video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#reader .qrbox {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 80%; /* Ajuste para 80% da largura do contêiner */
+    height: 80%; /* Ajuste para 80% da altura do contêiner */
+    max-width: 350px; /* Limite máximo de largura */
+    max-height: 350px; /* Limite máximo de altura */
+    transform: translate(-50%, -50%);
+    border: 2px solid #00ff00;
+}
 
 /* 🔹 Melhorias na exibição do JSON formatado */
 .payment-box {
@@ -350,5 +375,17 @@ button:hover {
     }
     .policy {
         font-size: 12px;
+    }
+    /* Ajustes específicos para o leitor de QR code no mobile */
+    #reader {
+        max-width: 100%;
+        height: auto;
+    }
+
+    #reader .qrbox {
+        width: 80%; /* Ajuste para 80% da largura do contêiner */
+        height: 80%; /* Ajuste para 80% da altura do contêiner */
+        max-width: 300px; /* Limite máximo de largura */
+        max-height: 300px; /* Limite máximo de altura */
     }
 }

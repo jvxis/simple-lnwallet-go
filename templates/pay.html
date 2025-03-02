@@ -30,52 +30,44 @@
     <a href="/dashboard">🏠 Voltar ao Dashboard</a>
 </div>
 
-<!-- Estilos para centralizar e aumentar a área de captura -->
-<style>
-  #reader {
-    width: 400px;
-    height: 400px;
-    margin: 20px auto;
-  }
-</style>
 
 <!-- Inclusão da biblioteca html5-qrcode via CDN -->
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script>
-document.getElementById("scanQrButton").addEventListener("click", function(){
-    var readerDiv = document.getElementById("reader");
-    readerDiv.style.display = "block";
-    
-    let html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start(
-        { facingMode: "environment" }, // usa a câmera traseira
-        {
-            fps: 10,
-            qrbox: {width: 350, height: 350} // aumenta o qrbox para melhorar a leitura
-        },
-        qrCodeMessage => {
-            console.log("QR Code detectado:", qrCodeMessage);
-            // Remove o prefixo "lightning:" (case-insensitive), remove espaços e converte para minúsculas
-            var cleanedInvoice = qrCodeMessage.replace(/^lightning:/i, '').trim().toLowerCase();
-            
-            document.getElementById("payment_request").value = cleanedInvoice;
-            
-            // Para o scanner e esconde o container
-            html5QrCode.stop().then(() => {
-                readerDiv.style.display = "none";
-            }).catch(err => {
-                console.error("Erro ao parar o scanner:", err);
-            });
-        },
+    document.getElementById("scanQrButton").addEventListener("click", function(){
+        var readerDiv = document.getElementById("reader");
+        readerDiv.style.display = "block";
         
-        errorMessage => {
-            // Pode tratar erros ou ignorar mensagens de erro temporárias
-            console.warn("Erro no scan:", errorMessage);
-        }
-    ).catch(err => {
-        console.error("Erro ao iniciar o scanner:", err);
+        let html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.start(
+            { facingMode: "environment" }, // usa a câmera traseira
+            {
+                fps: 10,
+                qrbox: { width: 350, height: 350 } // define o tamanho do qrbox
+            },
+            qrCodeMessage => {
+                console.log("QR Code detectado:", qrCodeMessage);
+                // Remove o prefixo "lightning:" (case-insensitive), remove espaços e converte para minúsculas
+                var cleanedInvoice = qrCodeMessage.replace(/^lightning:/i, '').trim().toLowerCase();
+                
+                document.getElementById("payment_request").value = cleanedInvoice;
+                
+                // Para o scanner e esconde o container
+                html5QrCode.stop().then(() => {
+                    readerDiv.style.display = "none";
+                }).catch(err => {
+                    console.error("Erro ao parar o scanner:", err);
+                });
+            },
+            
+            errorMessage => {
+                // Pode tratar erros ou ignorar mensagens de erro temporárias
+                console.warn("Erro no scan:", errorMessage);
+            }
+        ).catch(err => {
+            console.error("Erro ao iniciar o scanner:", err);
+        });
     });
-});
 </script>
 {{ end }}
 
