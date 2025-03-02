@@ -68,5 +68,9 @@ simple-lnwallet
 
 ## **Importante**
 **Para habitar a leitura de QRCODE via dispositivos móveis, precisa fazer o acesso com https.**
+
 **Para tal você precisa instalar certificados self-sign na máquina host e criar um proxy reverso - Instruções abaixo**
+
 https://github.com/jvxis/simple-lnwallet-go/blob/main/self-certificate.md
+
+**Fazendo esse procedimento, você poderá acessar com `https://nome-maquina` somente.**
