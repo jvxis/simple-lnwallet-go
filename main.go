@@ -421,6 +421,14 @@ func createInvoiceHandler(c *gin.Context) {
 
 // Pagar invoice
 func payInvoiceHandler(c *gin.Context) {
+    defer func() {
+        if r := recover(); r != nil {
+            c.HTML(http.StatusOK, "pay", gin.H{
+                "ErrorMessage": fmt.Sprintf("Erro inesperado ao pagar fatura: %v", r),
+            })
+        }
+    }()
+
     session := sessions.Default(c)
     addrI := session.Get("node_address")
     if addrI == nil {
@@ -428,6 +436,7 @@ func payInvoiceHandler(c *gin.Context) {
         return
     }
     addr := addrI.(string)
+
     // Recupera o node completo do banco
     node, err := getNodeByAddress(addr)
     if err != nil {
@@ -456,7 +465,6 @@ func payInvoiceHandler(c *gin.Context) {
             return
         }
 
-        // Após sucesso no pagamento:
         paymentHashHex := hex.EncodeToString(resp.PaymentHash)
         totalAmt := resp.PaymentRoute.TotalAmt
 
