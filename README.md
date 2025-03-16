@@ -15,7 +15,8 @@ Ele permite visualizar informações do node, criar faturas e pagar invoices.
 
 ## 📌 **1. Requisitos**
 Antes de começar, certifique-se de ter:
-- **Acesso ao seu LND via gRPC** (porta `10009`).
+- **Acesso ao seu LND via gRPC** (porta `10009`). Recomendamos o uso de uma VPN como o Tailscale para esse fim. Dessa maneira não é necessário abrir portas.
+- **Se você for executar o app em uma máquina diferente da de onde esta o node, precisa ter no seu `lnd.conf` o comando `rpclisten=0.0.0.0:10009`.
 - **Admin Macaroon e TLS Cert em formato HEX**.
 
 Se estiver no **Raspberry Pi 4**, instale `xxd` para extrair os arquivos:
@@ -62,8 +63,15 @@ simple-lnwallet
 ./simple-lnwallet-mac
 ```
 
-**Você acessa a app com http://nome-maquina:35671**
+**Você acessa a app com `http://nome-maquina:35671`**
+
+**Recomendamos o uso via VPN ou Tailscale. Assim na tela de conexão pode usar o `nome-da-maquina:10009` ou `ip-vpn:10009` ou `ip-tailscale:10009`**
+
 ## **Importante**
 **Para habitar a leitura de QRCODE via dispositivos móveis, precisa fazer o acesso com https.**
-**Para tal você precisa instalar certificados self-sign na máquina host - Instruções abaixo**
+
+**Para tal você precisa instalar certificados self-sign na máquina host e criar um proxy reverso - Instruções abaixo**
+
 https://github.com/jvxis/simple-lnwallet-go/blob/main/self-certificate.md
+
+**Fazendo esse procedimento, você poderá acessar com `https://nome-maquina` somente.**
