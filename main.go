@@ -56,6 +56,17 @@ type ChannelDetail struct {
     Node2Policy *lnrpc.RoutingPolicy
 }
 
+// ⚙️ Função para resolver LN Address
+type LNURLPayResponse struct {
+    Callback        string `json:"callback"`
+    MinSendable     int64  `json:"minSendable"`
+    MaxSendable     int64  `json:"maxSendable"`
+    Metadata        string `json:"metadata"`
+    Tag             string `json:"tag"`
+    AllowsNostr     bool   `json:"allowsNostr"`
+    CommentAllowed  int    `json:"commentAllowed"`
+}
+
 type macaroonCredential struct {
     macaroon string
 }
@@ -128,6 +139,8 @@ func main() {
     router.GET("/policy/update", updatePolicyHandler)
     router.POST("/policy/update", updatePolicyHandler)
     router.GET("/policy/form", updatePolicyFormHandler)
+    router.POST("/decode_invoice", decodeInvoiceHandler)
+
     
     log.Printf("🚀 Servidor iniciando na porta :35671")
     router.Run(":35671")
@@ -261,6 +274,70 @@ func connectLND(address, macaroonHex, tlsCertHex string) (lnrpc.LightningClient,
     }
 
     return client, nil
+}
+
+func resolveLNAddress(address string, amountSats int64, comment string) (string, error) {
+    parts := strings.Split(address, "@")
+    if len(parts) != 2 {
+        return "", fmt.Errorf("formato de Lightning Address inválido")
+    }
+
+    user := parts[0]
+    domain := parts[1]
+    metadataURL := fmt.Sprintf("https://%s/.well-known/lnurlp/%s", domain, user)
+
+    // 1. Buscar os dados da LNURL
+    resp, err := http.Get(metadataURL)
+    if err != nil {
+        return "", fmt.Errorf("erro ao buscar LNURL: %v", err)
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        return "", fmt.Errorf("LNURLP retornou status %d", resp.StatusCode)
+    }
+
+    var payResp LNURLPayResponse
+    err = json.NewDecoder(resp.Body).Decode(&payResp)
+    if err != nil {
+        return "", fmt.Errorf("erro ao decodificar resposta LNURLP: %v", err)
+    }
+
+    if payResp.Callback == "" {
+        return "", fmt.Errorf("callback ausente na resposta LNURLP")
+    }
+
+    // 2. Montar callback com parâmetros
+    callbackURL, err := url.Parse(payResp.Callback)
+    if err != nil {
+        return "", fmt.Errorf("callback inválido: %v", err)
+    }
+
+    q := callbackURL.Query()
+    q.Set("amount", strconv.FormatInt(amountSats*1000, 10)) // em msats
+    if comment != "" {
+        q.Set("comment", comment)
+    }
+    callbackURL.RawQuery = q.Encode()
+
+    // 3. Consultar o callback final
+    finalResp, err := http.Get(callbackURL.String())
+    if err != nil {
+        return "", fmt.Errorf("erro ao consultar callback LNURL: %v", err)
+    }
+    defer finalResp.Body.Close()
+
+    var data map[string]interface{}
+    if err := json.NewDecoder(finalResp.Body).Decode(&data); err != nil {
+        return "", fmt.Errorf("erro ao decodificar resposta do callback: %v", err)
+    }
+
+    pr, ok := data["pr"].(string)
+    if !ok || pr == "" {
+        return "", fmt.Errorf("payment Request ausente na resposta final")
+    }
+
+    return pr, nil
 }
 
 // Página inicial
@@ -418,17 +495,49 @@ func createInvoiceHandler(c *gin.Context) {
         c.HTML(http.StatusOK, "invoice", nil)
     }
 }
+// Decodificar invoice
+func decodeInvoiceHandler(c *gin.Context) {
+    session := sessions.Default(c)
+    addrI := session.Get("node_address")
+    if addrI == nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Node não conectado"})
+        return
+    }
 
-// Pagar invoice
+    addr := addrI.(string)
+    node, err := getNodeByAddress(addr)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao recuperar node"})
+        return
+    }
+
+    client, err := connectLND(node.Address, node.MacaroonHex, node.TLSCertHex)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao conectar ao LND"})
+        return
+    }
+
+    invoice := c.PostForm("payment_request")
+    if invoice == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invoice não fornecida"})
+        return
+    }
+
+    ctx := context.Background()
+    decoded, err := client.DecodePayReq(ctx, &lnrpc.PayReqString{PayReq: invoice})
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Erro ao decodificar invoice"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "amount_sat":  decoded.NumSatoshis,
+        "description": decoded.Description,
+    })
+}
+
+// 🚀 Handler de pagamento (atualizado)
 func payInvoiceHandler(c *gin.Context) {
-    defer func() {
-        if r := recover(); r != nil {
-            c.HTML(http.StatusOK, "pay", gin.H{
-                "ErrorMessage": fmt.Sprintf("Erro inesperado ao pagar fatura: %v", r),
-            })
-        }
-    }()
-
     session := sessions.Default(c)
     addrI := session.Get("node_address")
     if addrI == nil {
@@ -437,48 +546,68 @@ func payInvoiceHandler(c *gin.Context) {
     }
     addr := addrI.(string)
 
-    // Recupera o node completo do banco
     node, err := getNodeByAddress(addr)
     if err != nil {
-        c.String(http.StatusInternalServerError, "Erro ao recuperar node: %v", err)
+        c.String(http.StatusInternalServerError, "Erro ao recuperar node")
         return
     }
 
     client, err := connectLND(node.Address, node.MacaroonHex, node.TLSCertHex)
     if err != nil {
-        c.String(http.StatusInternalServerError, "Erro ao conectar ao LND: %v", err)
+        c.String(http.StatusInternalServerError, "Erro ao conectar ao LND")
         return
     }
 
-    if c.Request.Method == "POST" {
-        paymentRequest := c.PostForm("payment_request")
+    rawInput := strings.ToLower(strings.TrimSpace(c.PostForm("payment_request")))
+    rawInput = strings.TrimPrefix(rawInput, "lightning:")
 
-        req := &lnrpc.SendRequest{
-            PaymentRequest: paymentRequest,
-        }
+    var paymentRequest string
 
-        resp, err := client.SendPaymentSync(context.Background(), req)
-        if err != nil {
-            c.HTML(http.StatusOK, "pay", gin.H{
-                "ErrorMessage": fmt.Sprintf("Erro ao pagar fatura: %v", err),
-            })
+    if strings.Contains(rawInput, "@") {
+        // Lightning Address
+        amountStr := c.PostForm("amount")
+        amount, err := strconv.ParseInt(amountStr, 10, 64)
+        if err != nil || amount <= 0 {
+            c.HTML(http.StatusBadRequest, "pay", gin.H{"ErrorMessage": "Informe um valor válido para envio ao Lightning Address."})
             return
         }
+        description := c.PostForm("description")
 
-        paymentHashHex := hex.EncodeToString(resp.PaymentHash)
-        totalAmt := resp.PaymentRoute.TotalAmt
-
-        resultData := map[string]interface{}{
-            "message":   "Pagamento realizado com sucesso!",
-            "hash":      paymentHashHex,
-            "total_amt": totalAmt,
+        pr, err := resolveLNAddress(rawInput, amount, description)
+        if err != nil {
+            c.HTML(http.StatusBadRequest, "pay", gin.H{"ErrorMessage": fmt.Sprintf("Erro ao resolver LN Address: %v", err)})
+            return
         }
+        paymentRequest = pr
 
-        c.HTML(http.StatusOK, "pay", gin.H{"result": resultData})
     } else {
-        c.HTML(http.StatusOK, "pay", nil)
+        // Invoice direta
+        paymentRequest = rawInput
     }
+
+    // Envia o pagamento
+    sendReq := &lnrpc.SendRequest{PaymentRequest: paymentRequest}
+    resp, err := client.SendPaymentSync(context.Background(), sendReq)
+    if err != nil {
+        c.HTML(http.StatusInternalServerError, "pay", gin.H{"ErrorMessage": fmt.Sprintf("Erro ao enviar pagamento: %v", err)})
+        return
+    }
+
+    if resp.PaymentError != "" {
+        c.HTML(http.StatusOK, "pay", gin.H{"ErrorMessage": fmt.Sprintf("Erro de pagamento: %v", resp.PaymentError)})
+        return
+    }
+
+    c.HTML(http.StatusOK, "pay", gin.H{
+        "result": gin.H{
+            "message": "Pagamento enviado com sucesso!",
+            "hash":    fmt.Sprintf("%x", resp.PaymentHash), // ✅
+            "total_amt": resp.PaymentRoute.TotalAmt,
+        },
+    })
+    
 }
+
 
 // Exibir a página de Invoice
 func invoiceHandler(c *gin.Context) {

@@ -8,10 +8,27 @@
 {{ end }}
 
 <form method="post" id="paymentForm">
-    <label>Invoice (Fatura Lightning):</label>
-    <input type="text" name="payment_request" id="payment_request" placeholder="Cole a fatura aqui" required>
+    <label>Invoice Lightning ou Lightning Address:</label>
+    <input type="text" name="payment_request" id="payment_request" placeholder="Cole a fatura ou endereço LN aqui" required>
+
+    <!-- Detalhes da invoice decodificada -->
+    <div id="invoice-info" style="display:none; margin-top: 1em;">
+        <p><strong>💰 Valor:</strong> <span id="decoded-amount"></span> sats</p>
+        <p><strong>📝 Descrição:</strong> <span id="decoded-description"></span></p>
+    </div>
+
+    <!-- Campos extras para Lightning Address -->
+    <div id="lnaddress-fields" style="display:none; margin-top: 1em;">
+        <label>Valor (satoshis):</label>
+        <input type="number" name="amount" id="amount" placeholder="Informe o valor" min="1">
+
+        <label>Descrição (opcional):</label>
+        <input type="text" name="description" id="description" placeholder="Comentário para o receptor">
+    </div>
+
     <button type="submit">💳 Pagar</button>
 </form>
+
 
 <!-- Botão para iniciar a leitura do QR Code -->
 <button id="scanQrButton">📷 Escanear QR Code</button>
@@ -34,41 +51,91 @@
 <!-- Inclusão da biblioteca html5-qrcode via CDN -->
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script>
+    const paymentInput = document.getElementById("payment_request");
+    const invoiceInfo = document.getElementById("invoice-info");
+    const lnFields = document.getElementById("lnaddress-fields");
+
+    // Normaliza antes de enviar
+    document.getElementById("paymentForm").addEventListener("submit", function(e){
+        paymentInput.value = paymentInput.value.replace(/^lightning:/i, '').trim().toLowerCase();
+        document.body.style.cursor = "wait";
+    });
+
+    // QR Code Scanner
     document.getElementById("scanQrButton").addEventListener("click", function(){
-        var readerDiv = document.getElementById("reader");
+        const readerDiv = document.getElementById("reader");
         readerDiv.style.display = "block";
         
-        let html5QrCode = new Html5Qrcode("reader");
+        const html5QrCode = new Html5Qrcode("reader");
         html5QrCode.start(
-            { facingMode: "environment" }, // usa a câmera traseira
+            { facingMode: "environment" },
             {
                 fps: 10,
-                qrbox: { width: 350, height: 350 } // define o tamanho do qrbox
+                qrbox: { width: 350, height: 350 }
             },
             qrCodeMessage => {
                 console.log("QR Code detectado:", qrCodeMessage);
-                // Remove o prefixo "lightning:" (case-insensitive), remove espaços e converte para minúsculas
-                var cleanedInvoice = qrCodeMessage.replace(/^lightning:/i, '').trim().toLowerCase();
-                
-                document.getElementById("payment_request").value = cleanedInvoice;
-                
-                // Para o scanner e esconde o container
+                const cleanedInvoice = qrCodeMessage.replace(/^lightning:/i, '').trim().toLowerCase();
+                paymentInput.value = cleanedInvoice;
+
+                // dispara o evento input manualmente
+                paymentInput.dispatchEvent(new Event("input"));
+
                 html5QrCode.stop().then(() => {
                     readerDiv.style.display = "none";
                 }).catch(err => {
                     console.error("Erro ao parar o scanner:", err);
                 });
             },
-            
             errorMessage => {
-                // Pode tratar erros ou ignorar mensagens de erro temporárias
                 console.warn("Erro no scan:", errorMessage);
             }
         ).catch(err => {
             console.error("Erro ao iniciar o scanner:", err);
         });
     });
+
+    // Detecta tipo de entrada: LN Address ou Invoice
+    paymentInput.addEventListener("input", function() {
+        const raw = this.value.trim().toLowerCase();
+        const cleaned = raw.replace(/^lightning:/i, '');
+        this.value = cleaned;
+
+        if (cleaned.includes("@")) {
+            // LN Address → mostra campos adicionais
+            lnFields.style.display = "block";
+            invoiceInfo.style.display = "none";
+        } else if (cleaned.startsWith("lnbc") || cleaned.startsWith("lntb") || cleaned.startsWith("lnbcrt")) {
+            // Invoice → decodifica
+            lnFields.style.display = "none";
+
+            fetch("/decode_invoice", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: "payment_request=" + encodeURIComponent(cleaned)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    invoiceInfo.style.display = "none";
+                    return;
+                }
+                document.getElementById("decoded-amount").textContent = data.amount_sat;
+                document.getElementById("decoded-description").textContent = data.description;
+                invoiceInfo.style.display = "block";
+            })
+            .catch(err => {
+                console.error("Erro ao decodificar invoice:", err);
+                invoiceInfo.style.display = "none";
+            });
+        } else {
+            // Entrada neutra ou inválida
+            lnFields.style.display = "none";
+            invoiceInfo.style.display = "none";
+        }
+    });
 </script>
+
 {{ end }}
 
 
