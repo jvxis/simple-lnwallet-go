@@ -140,6 +140,7 @@ func main() {
     router.POST("/policy/update", updatePolicyHandler)
     router.GET("/policy/form", updatePolicyFormHandler)
     router.POST("/decode_invoice", decodeInvoiceHandler)
+    router.POST("/delete_node", deleteNodeHandler)
 
     
     log.Printf("🚀 Servidor iniciando na porta :35671")
@@ -156,6 +157,26 @@ func getNodeByAddress(address string) (Node, error) {
         return json.Unmarshal(v, &node)
     })
     return node, err
+}
+
+func deleteNodeHandler(c *gin.Context) {
+    nodeAddress := c.PostForm("node_address")
+    if nodeAddress == "" {
+        c.String(http.StatusBadRequest, "Endereço do node não fornecido")
+        return
+    }
+
+    err := db.Update(func(tx *bolt.Tx) error {
+        b := tx.Bucket([]byte("Nodes"))
+        return b.Delete([]byte(nodeAddress))
+    })
+
+    if err != nil {
+        c.String(http.StatusInternalServerError, "Erro ao excluir node: %v", err)
+        return
+    }
+
+    c.Redirect(http.StatusFound, "/")
 }
 func createRenderer() multitemplate.Renderer {
     r := multitemplate.NewRenderer()

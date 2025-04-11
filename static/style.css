@@ -201,6 +201,16 @@ button:hover {
     align-items: center;
 }
 
+.node-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 10px;
+    gap: 5px;
+}
+
 .nodes-list button {
     width: 100%;
     max-width: 400px;
@@ -218,6 +228,23 @@ button:hover {
 .nodes-list button:hover {
     background: #00ff00;
     color: #000;
+}
+
+/* Botão de exclusão (ícone de lata de lixo) */
+.delete-button {
+    background: none;
+    border: none;
+    color: red;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-button:hover {
+    color: darkred;
 }
 
 /* Caixa de erro para mensagens amigáveis */

@@ -24,12 +24,18 @@
 <h3>🔍 Nodes Salvos</h3>
 <div class="nodes-list">
     {{ range .Nodes }}
-    <form method="post">
-        <input type="hidden" name="node_address" value="{{ .Address }}">
-        <input type="hidden" name="macaroon_hex" value="{{ .MacaroonHex }}">
-        <input type="hidden" name="tls_cert_hex" value="{{ .TLSCertHex }}">
-        <button type="submit">🌐 {{ .Alias }}</button>
-    </form>
+    <div class="node-item" style="display: flex; align-items: center; margin-bottom: 10px;">
+        <form method="post" style="margin: 0; padding: 0; flex-grow: 1;">
+            <input type="hidden" name="node_address" value="{{ .Address }}">
+            <input type="hidden" name="macaroon_hex" value="{{ .MacaroonHex }}">
+            <input type="hidden" name="tls_cert_hex" value="{{ .TLSCertHex }}">
+            <button type="submit" class="node-button">🌐 {{ .Alias }}</button>
+        </form>
+        <form method="post" action="/delete_node" style="margin: 0; padding: 0;">
+            <input type="hidden" name="node_address" value="{{ .Address }}">
+            <button type="submit" class="delete-button" title="Excluir Node">🗑️</button>
+        </form>
+    </div>
     {{ end }}
 </div>
 {{ end }}
