@@ -40,6 +40,12 @@ chmod +x simple-lnwallet
 Clicar no link para download
 https://github.com/jvxis/simple-lnwallet-go/releases/download/v.0.0.2/simple-lnwallet-mac.exe
 
+*Raspberry PI*
+```bash
+wget https://github.com/jvxis/simple-lnwallet-go/releases/download/v.0.0.2/simple-lnwallet-rpi
+chmod +x simple-lnwallet
+```
+
 ## **3. Extraindo as Credenciais do LND**
 Executar no diretório `/home/admin`
 ```bash
