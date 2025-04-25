@@ -28,17 +28,23 @@ Basta fazer o download do Binário
 
 *Windows: final .exe*
 Clicar no link para Download
-https://github.com/jvxis/simple-lnwallet-go/releases/download/v.0.0.1/simple-lnwallet.exe
+https://github.com/jvxis/simple-lnwallet-go/releases/download/v.0.0.2/simple-lnwallet.exe
 
 *Linux*
 ```bash
-wget https://github.com/jvxis/simple-lnwallet-go/releases/download/v.0.0.1/simple-lnwallet
+wget https://github.com/jvxis/simple-lnwallet-go/releases/download/v.0.0.2/simple-lnwallet
 chmod +x simple-lnwallet
 ```
 
 *MacOs*
 Clicar no link para download
-https://github.com/jvxis/simple-lnwallet-go/releases/download/v.0.0.1/simple-lnwallet-mac.exe
+https://github.com/jvxis/simple-lnwallet-go/releases/download/v.0.0.2/simple-lnwallet-mac.exe
+
+*Raspberry PI*
+```bash
+wget https://github.com/jvxis/simple-lnwallet-go/releases/download/v.0.0.2/simple-lnwallet-rpi
+chmod +x simple-lnwallet
+```
 
 ## **3. Extraindo as Credenciais do LND**
 Executar no diretório `/home/admin`
