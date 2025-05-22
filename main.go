@@ -460,13 +460,21 @@ func dashboardHandler(c *gin.Context) {
     info, _ := client.GetInfo(context.Background(), &lnrpc.GetInfoRequest{})
     balance, _ := client.WalletBalance(context.Background(), &lnrpc.WalletBalanceRequest{})
     channelBalance, _ := client.ChannelBalance(context.Background(), &lnrpc.ChannelBalanceRequest{})
-
+    // Mostra um emoji verde se true, vermelho se false
+    syncedToChain := "❌"
+    if info.SyncedToChain {
+        syncedToChain = "✅"
+    }
+    syncedToGraph := "❌"
+    if info.SyncedToGraph {
+        syncedToGraph = "✅"
+    }
     c.HTML(http.StatusOK, "dashboard", gin.H{
         "NodeInfo":       info,
         "Balance":        balance,
         "ChannelBalance": channelBalance,
-        "SyncedToChain":  "✅",
-        "SyncedToGraph":  "✅",
+        "SyncedToChain":  syncedToChain,
+        "SyncedToGraph":  syncedToGraph,
     })
 }
 
