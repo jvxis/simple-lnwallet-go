@@ -14,14 +14,37 @@
 </head>
 <body>
     <div class="terminal">
-        <h1 class="title">⚡ Lightning Wallet CLI</h1>
+        <h1 class="title">⚡ LND Wallet Buddy</h1>
         <div class="content">
             {{ template "content" . }}
         </div>
         <footer class="footer">
             <small><a href="https://br-ln.com" target="_blank">Powered By BR⚡LN</a></small>
+            <small><p>Versão: 0.0.3 Beta</p></small>
         </footer>
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Para todos os formulários
+            document.querySelectorAll("form").forEach(function(form) {
+                form.addEventListener("submit", function() {
+                    document.body.style.cursor = "wait";
+                });
+            });
+            // Para todos os botões de submit fora de forms (caso existam)
+            document.querySelectorAll("button[type=submit]").forEach(function(btn) {
+                btn.addEventListener("click", function() {
+                    document.body.style.cursor = "wait";
+                });
+            });
+            // Para todos os links do menu
+            document.querySelectorAll(".menu a").forEach(function(link) {
+                link.addEventListener("click", function() {
+                    document.body.style.cursor = "wait";
+                });
+            });
+        });
+        </script>
 </body>
 </html>
 {{ end }}

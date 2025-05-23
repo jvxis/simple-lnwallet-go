@@ -97,7 +97,13 @@ button:hover {
     background: #00ff00;
     color: #000;
 }
+.neon-red {
+    color: #ff1744;
+    text-shadow:
+        0 0 2px #ff1744,
+        0 0 6px #ff1744;
 
+}
 /* Área da fatura gerada */
 .invoice-box {
     display: flex;
@@ -295,6 +301,11 @@ button:hover {
     text-decoration: none;
 }
 
+.footer p {
+    color: #00ff00; /* cor verde */
+    text-decoration: none;
+}
+
 .footer a:hover {
     text-decoration: underline;
 }
@@ -344,7 +355,7 @@ button:hover {
     padding: 15px;
     margin-bottom: 20px;
     border-radius: 5px;
-    font-size: 14px;
+    font-size: 12px;
 }
 .policy-row {
     display: flex;
@@ -352,11 +363,15 @@ button:hover {
     margin-bottom: 8px;
 }
 .policy-label {
-    font-weight: bold;
+    font-weight: normal;
     margin-right: 5px;
 }
 .policy-value {
     margin-right: 20px;
+    font-weight: bold;
+    vertical-align: middle;
+    /* Se quiser garantir, pode adicionar: */
+    line-height: 1.8;
 }
 .policy-update input[type="number"] {
     background-color: #003300; /* Fundo verde escuro */
@@ -401,7 +416,7 @@ button:hover {
         font-size: 0.7em;  /* ainda menor */
     }
     .policy {
-        font-size: 12px;
+        font-size: 11px;
     }
     /* Ajustes específicos para o leitor de QR code no mobile */
     #reader {

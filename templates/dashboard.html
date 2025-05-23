@@ -1,18 +1,19 @@
 {{ define "content" }}
 <h2>📡 Node Status</h2>
 <pre>
-Alias do Node:   {{ .NodeInfo.Alias }}
-Versão do LND:   {{ .NodeInfo.Version }}
-Número de Canais: {{ .NodeInfo.NumActiveChannels }}
+🔖 Alias do Node:    <strong>{{ .NodeInfo.Alias }}</strong>
+🛠️ Versão do LND:    {{ .NodeInfo.Version }}
+🔗 Número de Canais: {{ add .NodeInfo.NumActiveChannels .NodeInfo.NumInactiveChannels }}
+🔴 Canais Inativos:  {{ if gt .NodeInfo.NumInactiveChannels 0 }}<span class="neon-red">{{ .NodeInfo.NumInactiveChannels }}</span>{{ else }}{{ .NodeInfo.NumInactiveChannels }}{{ end }}
 
-🔄 Sincronizado com Blockchain: {{ .SyncedToChain }}
+🔄 Sincronizado com Blockchain:     {{ .SyncedToChain }}
 🌍 Sincronizado com Rede Lightning: {{ .SyncedToGraph }}
 </pre>
 
 <h2>💰 Saldo</h2>
 <pre>
-Saldo Onchain:   {{ formatSat .Balance.ConfirmedBalance }} sats ({{ toBTC .Balance.ConfirmedBalance }} BTC) 
-Saldo Lightning: {{ formatSat .ChannelBalance.LocalBalance.Sat }} sats ({{ toBTC .ChannelBalance.LocalBalance.Sat }} BTC)
+🏦 Saldo Onchain:   {{ formatSat .Balance.ConfirmedBalance }} sats ({{ toBTC .Balance.ConfirmedBalance }} BTC)
+⚡ Saldo Lightning: {{ formatSat .ChannelBalance }} sats ({{ toBTC .ChannelBalance }} BTC)
 </pre>
 
 <div class="menu">

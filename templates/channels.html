@@ -4,6 +4,7 @@
 <table>
     <thead>
         <tr>
+            <th>Status</th>
             <th>Canal (Alias)</th>
             <th>Capacidade (sats)</th>
             <th>Saldo (sats)</th>
@@ -12,6 +13,7 @@
     <tbody>
         {{ range .Channels }}
         <tr onclick="window.location='/channels/{{ .ChanId }}?alias={{ .Alias }}'" style="cursor:pointer;">
+            <td>{{ if .Active }}🟢{{ else }}🔴{{ end }}</td>
             <td>{{ .Alias }}</td>
             <td>{{ formatSat .Capacity }}</td>
             <td>{{ formatSat .LocalBalance }}</td>

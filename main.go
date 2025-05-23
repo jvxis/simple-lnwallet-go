@@ -44,7 +44,8 @@ type ChannelItem struct {
     Alias        string
     Capacity     int64
     LocalBalance int64
-    ChanId       uint64  // novo campo para identificar o canal
+    ChanId       uint64  
+    Active       bool
 }
 
 type ChannelDetail struct {
@@ -214,6 +215,13 @@ func createRenderer() multitemplate.Renderer {
                 return time.Unix(int64(t), 0).Format("02.01.2006 15:04:05")
             }
             return fmt.Sprintf("%v", ts)
+        },
+        "add": func(a, b uint32, c ...uint32) uint32 {
+            sum := a + b
+            for _, v := range c {
+                sum += v
+            }
+            return sum
         },
     }
 
@@ -460,6 +468,8 @@ func dashboardHandler(c *gin.Context) {
     info, _ := client.GetInfo(context.Background(), &lnrpc.GetInfoRequest{})
     balance, _ := client.WalletBalance(context.Background(), &lnrpc.WalletBalanceRequest{})
     channelBalance, _ := client.ChannelBalance(context.Background(), &lnrpc.ChannelBalanceRequest{})
+    // Soma local_balance + unsettled_local_balance
+    totalLocal := channelBalance.LocalBalance.Sat + channelBalance.UnsettledRemoteBalance.Sat
     // Mostra um emoji verde se true, vermelho se false
     syncedToChain := "❌"
     if info.SyncedToChain {
@@ -472,7 +482,7 @@ func dashboardHandler(c *gin.Context) {
     c.HTML(http.StatusOK, "dashboard", gin.H{
         "NodeInfo":       info,
         "Balance":        balance,
-        "ChannelBalance": channelBalance,
+        "ChannelBalance": totalLocal,
         "SyncedToChain":  syncedToChain,
         "SyncedToGraph":  syncedToGraph,
     })
@@ -697,6 +707,7 @@ func listChannelsHandler(c *gin.Context) {
             Capacity:     channel.Capacity,
             LocalBalance: channel.LocalBalance,
             ChanId:       channel.ChanId,
+            Active:       channel.Active,
         })
     }
     sort.Slice(channelItems, func(i, j int) bool {
