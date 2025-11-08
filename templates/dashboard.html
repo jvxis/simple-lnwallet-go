@@ -1,25 +1,153 @@
 {{ define "content" }}
-<h2>📡 Node Status</h2>
+<h2>⚡ Node Status</h2>
 <pre>
-🔖 Alias do Node:    <strong>{{ .NodeInfo.Alias }}</strong>
-🛠️ Versão do LND:    {{ .NodeInfo.Version }}
+🏷️ Alias do Node:    <strong>{{ .NodeInfo.Alias }}</strong>
+🧩 Versão do LND:    {{ .NodeInfo.Version }}
 🔗 Número de Canais: {{ add .NodeInfo.NumActiveChannels .NodeInfo.NumInactiveChannels }}
-🔴 Canais Inativos:  {{ if gt .NodeInfo.NumInactiveChannels 0 }}<span class="neon-red">{{ .NodeInfo.NumInactiveChannels }}</span>{{ else }}{{ .NodeInfo.NumInactiveChannels }}{{ end }}
+⛔ Canais Inativos:  {{ if gt .NodeInfo.NumInactiveChannels 0 }}<span class="neon-red">{{ .NodeInfo.NumInactiveChannels }}</span>{{ else }}{{ .NodeInfo.NumInactiveChannels }}{{ end }}
 
-🔄 Sincronizado com Blockchain:     {{ .SyncedToChain }}
-🌍 Sincronizado com Rede Lightning: {{ .SyncedToGraph }}
+⛓️ Sincronizado com Blockchain:     {{ if .NodeInfo.SyncedToChain }}✅{{ else }}❌{{ end }}
+🌐 Sincronizado com Rede Lightning: {{ if .NodeInfo.SyncedToGraph }}✅{{ else }}❌{{ end }}
 </pre>
 
 <h2>💰 Saldo</h2>
 <pre>
-🏦 Saldo Onchain:   {{ formatSat .Balance.ConfirmedBalance }} sats ({{ toBTC .Balance.ConfirmedBalance }} BTC)
-⚡ Saldo Lightning: {{ formatSat .ChannelBalance }} sats ({{ toBTC .ChannelBalance }} BTC)
+- 🔗 Saldo Onchain:   {{ formatSat .Balance.ConfirmedBalance }} sats ({{ toBTC .Balance.ConfirmedBalance }} BTC)
+- ⚡ Saldo Lightning: {{ formatSat .ChannelBalance }} sats ({{ toBTC .ChannelBalance }} BTC)
 </pre>
 
 <div class="menu">
-    <a href="/invoice">⚡ Criar Fatura</a>
+    <a href="/invoice">🧾 Criar Fatura</a>
     <a href="/pay">💸 Pagar Fatura</a>
-    <a href="/channels">🔗 Canais</a>
-    <a href="/">🔌 Voltar a Conexão</a>
+    <a href="/channels">🔀 Canais</a>
+    <a href="#" id="openChannelBtn">➕ Abrir Canal</a>
+    <a href="/">↩️ Voltar à Conexão</a>
+ </div>
+
+<!-- Modal Abrir Canal -->
+<div id="openChannelModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3>➕ Abrir Canal</h3>
+    <div id="openChannelMessage" class="modal-message" style="display:none;"></div>
+    <form id="openChannelForm">
+        <label>🤝 Peer (pubkey@host:port):</label>
+        <input type="text" name="peer_info" placeholder="0289...@1.2.3.4:9735" required>
+
+        <label>💰 Valor (sats):</label>
+        <input type="number" name="amount_sats" min="1" placeholder="Ex: 250000" required>
+
+        <label>⛽ Taxa (sat/vByte):</label>
+        <input type="number" name="sat_per_vbyte" min="1" placeholder="Ex: 3" required>
+
+        <label>🏁 Endereço on-chain de fechamento (opcional):</label>
+        <input type="text" name="close_address" placeholder="bc1...">
+
+        <div class="modal-actions">
+            <button type="submit" id="confirmOpenChannel">🤝 Conectar e Abrir</button>
+            <button type="button" id="cancelOpenChannel">✖️ Cancelar</button>
+        </div>
+    </form>
+  </div>
 </div>
+
+<script>
+  (function() {
+    const modal = document.getElementById('openChannelModal');
+    const btn = document.getElementById('openChannelBtn');
+    const form = document.getElementById('openChannelForm');
+    const cancelBtn = document.getElementById('cancelOpenChannel');
+    const confirmBtn = document.getElementById('confirmOpenChannel');
+    const msg = document.getElementById('openChannelMessage');
+
+    if (btn) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        msg.style.display = 'none';
+        msg.textContent = '';
+        modal.classList.add('is-visible');
+      });
+    }
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', function() {
+        modal.classList.remove('is-visible');
+        form.reset();
+        document.body.style.cursor = 'default';
+      });
+    }
+    // Fechar se clicar fora do conteúdo
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        modal.classList.remove('is-visible');
+        document.body.style.cursor = 'default';
+      }
+    });
+
+    if (form) {
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        // Validações simples de front-end
+        const fd = new FormData(form);
+        const peer = String(fd.get('peer_info')||'').trim();
+        const amount = parseInt(String(fd.get('amount_sats')||'0'), 10);
+        const satvb = parseInt(String(fd.get('sat_per_vbyte')||'0'), 10);
+        msg.classList.remove('error','success');
+        if (!peer.includes('@') || !peer.split('@')[1]?.includes(':')) {
+          msg.style.display = 'block';
+          msg.classList.add('error');
+          msg.textContent = '❌ Formato do peer inválido. Use pubkey@host:port';
+          return;
+        }
+        const MIN_SATS = 200000; // mínimo recomendado para canais
+        if (!(amount > 0)) {
+          msg.style.display = 'block';
+          msg.classList.add('error');
+          msg.textContent = '❌ Informe um valor de canal em satoshis (> 0).';
+          return;
+        }
+        if (amount < MIN_SATS) {
+          msg.style.display = 'block';
+          msg.classList.add('error');
+          msg.textContent = '⚠️ Valor muito baixo. Recomenda-se >= 200000 sats para melhor roteamento.';
+          return;
+        }
+        if (!(satvb >= 1)) {
+          msg.style.display = 'block';
+          msg.classList.add('error');
+          msg.textContent = '❌ Taxa inválida. Use sat/vByte >= 1.';
+          return;
+        }
+
+        msg.style.display = 'block';
+        msg.textContent = '⏳ Processando...';
+        document.body.style.cursor = 'wait';
+        confirmBtn.disabled = true;
+        try {
+          const body = new URLSearchParams(fd);
+          const res = await fetch('/channels/open', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body
+          });
+          const data = await res.json();
+          if (data.status === 'ok') {
+            msg.classList.add('success');
+            msg.innerHTML = '✅ Canal aberto! TXID: ' + data.funding_txid + ' (vout ' + data.output_index + '). ' +
+              '<a href="/channels">🔍 Ver canais</a>';
+          } else {
+            msg.classList.add('error');
+            msg.textContent = '❌ Erro: ' + (data.message || 'Falha ao abrir canal');
+          }
+        } catch (err) {
+          console.error(err);
+          msg.classList.add('error');
+          msg.textContent = '⚠️ Erro inesperado: ' + err;
+        } finally {
+          document.body.style.cursor = 'default';
+          confirmBtn.disabled = false;
+        }
+      });
+    }
+  })();
+</script>
 {{ end }}
+

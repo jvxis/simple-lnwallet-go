@@ -431,3 +431,47 @@ button:hover {
         max-height: 300px; /* Limite máximo de altura */
     }
 }
+
+/* Modal (Abrir Canal) */
+.modal-overlay {
+    position: fixed;
+    left: 0; right: 0; top: 0; bottom: 0;
+    background: rgba(0,255,0,0.05);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+.modal-overlay.is-visible {
+    display: flex;
+}
+.modal-content {
+    width: 95%;
+    max-width: 520px;
+    background: #111;
+    border: 2px solid #00ff00;
+    border-radius: 6px;
+    box-shadow: 0 0 12px #00ff00;
+    padding: 16px;
+    text-align: left;
+}
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+.modal-message {
+    margin-top: 10px;
+    padding: 8px;
+    background: #001307;
+    border: 1px solid #00ff00;
+    border-radius: 4px;
+}
+.modal-message.error {
+    color: #ff1744;
+    border-color: #ff1744;
+}
+.modal-message.success {
+    color: #00ff00;
+}

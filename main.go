@@ -136,6 +136,7 @@ func main() {
     router.GET("/pay", payHandler)
     router.POST("/pay", payInvoiceHandler)
     router.GET("/channels", listChannelsHandler)
+    router.POST("/channels/open", openChannelHandler)
     router.GET("/channels/:chanId", showChannelHandler)
     router.GET("/policy/update", updatePolicyHandler)
     router.POST("/policy/update", updatePolicyHandler)
@@ -1025,4 +1026,103 @@ func updatePolicyHandler(c *gin.Context) {
     // Reutiliza a variável chanID já obtida do formulário (não re-declarada)
     redirectURL := fmt.Sprintf("/channels/%s?alias=%s", chanID, url.QueryEscape(alias))
     c.Redirect(http.StatusFound, redirectURL)
+}
+
+// Abrir canal via modal (conecta peer e abre canal)
+func openChannelHandler(c *gin.Context) {
+    session := sessions.Default(c)
+    addrI := session.Get("node_address")
+    if addrI == nil {
+        c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Node não conectado"})
+        return
+    }
+    addr := addrI.(string)
+
+    node, err := getNodeByAddress(addr)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": fmt.Sprintf("Erro ao recuperar node: %v", err)})
+        return
+    }
+
+    client, err := connectLND(node.Address, node.MacaroonHex, node.TLSCertHex)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": fmt.Sprintf("Erro ao conectar ao LND: %v", err)})
+        return
+    }
+
+    peerInfo := strings.TrimSpace(c.PostForm("peer_info"))
+    amountStr := strings.TrimSpace(c.PostForm("amount_sats"))
+    satVbStr := strings.TrimSpace(c.PostForm("sat_per_vbyte"))
+    closeAddr := strings.TrimSpace(c.PostForm("close_address"))
+
+    if peerInfo == "" || amountStr == "" || satVbStr == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Preencha Peer, Valor (sats) e Taxa (sat/vByte)"})
+        return
+    }
+
+    // Parse peer_info: pubkey@host:port
+    parts := strings.Split(peerInfo, "@")
+    if len(parts) != 2 {
+        c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Formato de peer inválido. Use pubkey@host:port"})
+        return
+    }
+    pubkey := strings.TrimSpace(parts[0])
+    hostport := strings.TrimSpace(parts[1])
+    if !strings.Contains(hostport, ":") {
+        c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Endereço do peer deve conter host:port"})
+        return
+    }
+
+    amount, err := strconv.ParseInt(amountStr, 10, 64)
+    if err != nil || amount <= 0 {
+        c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Valor de canal inválido. Informe satoshis > 0."})
+        return
+    }
+    satVb, err := strconv.ParseUint(satVbStr, 10, 64)
+    if err != nil || satVb == 0 {
+        c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Taxa inválida. Use sat/vByte >= 1."})
+        return
+    }
+
+    // 1) Conectar ao peer (ignora erro se já conectado)
+    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    defer cancel()
+
+    _, err = client.ConnectPeer(ctx, &lnrpc.ConnectPeerRequest{
+        Addr: &lnrpc.LightningAddress{
+            Pubkey: pubkey,
+            Host:   hostport,
+        },
+        Perm:    false,
+        Timeout: 15,
+    })
+    if err != nil {
+        le := strings.ToLower(err.Error())
+        if !(strings.Contains(le, "already connected") || strings.Contains(le, "connected to peer")) {
+            c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": fmt.Sprintf("Falha ao conectar ao peer: %v", err)})
+            return
+        }
+    }
+
+    // 2) Abrir canal (OpenChannelSync)
+    openReq := &lnrpc.OpenChannelRequest{
+        NodePubkeyString:   pubkey,
+        LocalFundingAmount: amount,
+        SatPerVbyte:        satVb,
+    }
+    if closeAddr != "" {
+        openReq.CloseAddress = closeAddr
+    }
+
+    cp, err := client.OpenChannelSync(ctx, openReq)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": fmt.Sprintf("Erro ao abrir canal: %v", err)})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "status":       "ok",
+        "funding_txid": cp.GetFundingTxidStr(),
+        "output_index": cp.GetOutputIndex(),
+    })
 }
