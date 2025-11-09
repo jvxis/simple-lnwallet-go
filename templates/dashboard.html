@@ -149,7 +149,10 @@
           const data = await res.json();
           if (data.status === 'ok') {
             msg.classList.add('success');
-            msg.innerHTML = '✅ Canal aberto! TXID: ' + data.funding_txid + ' (vout ' + data.output_index + '). ' +
+            const txid = data.funding_txid || '';
+            const vout = data.output_index;
+            const mempool = txid ? ' <a href="https://mempool.space/tx/' + txid + '" target="_blank" rel="noopener">🔗 Ver na mempool</a>' : '';
+            msg.innerHTML = '✅ Canal aberto! TXID: ' + (txid || '(indisponível)') + ' (vout ' + vout + ').' + mempool + ' ' +
               '<a href="/channels">🔍 Ver canais</a>';
           } else {
             msg.classList.add('error');
@@ -168,4 +171,3 @@
   })();
 </script>
 {{ end }}
-

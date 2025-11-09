@@ -1120,9 +1120,22 @@ func openChannelHandler(c *gin.Context) {
         return
     }
 
+    // Obter TXID de forma confiável: usa string se disponível,
+    // caso contrário converte os bytes (revertendo endianness) para hex.
+    txidStr := cp.GetFundingTxidStr()
+    if txidStr == "" {
+        b := cp.GetFundingTxidBytes()
+        if len(b) > 0 {
+            for i, j := 0, len(b)-1; i < j; i, j = i+1, j-1 {
+                b[i], b[j] = b[j], b[i]
+            }
+            txidStr = hex.EncodeToString(b)
+        }
+    }
+
     c.JSON(http.StatusOK, gin.H{
         "status":       "ok",
-        "funding_txid": cp.GetFundingTxidStr(),
+        "funding_txid": txidStr,
         "output_index": cp.GetOutputIndex(),
     })
 }
