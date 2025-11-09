@@ -12,8 +12,8 @@
 
 <h2>💰 Saldo</h2>
 <pre>
-- 🔗 Saldo Onchain:   {{ formatSat .Balance.ConfirmedBalance }} sats ({{ toBTC .Balance.ConfirmedBalance }} BTC)
-- ⚡ Saldo Lightning: {{ formatSat .ChannelBalance }} sats ({{ toBTC .ChannelBalance }} BTC)
+🔗 Saldo Onchain:   {{ formatSat .Balance.ConfirmedBalance }} sats ({{ toBTC .Balance.ConfirmedBalance }} BTC)
+⚡ Saldo Lightning: {{ formatSat .ChannelBalance }} sats ({{ toBTC .ChannelBalance }} BTC)
 </pre>
 
 <div class="menu">
@@ -36,8 +36,8 @@
         <label>💰 Valor (sats):</label>
         <input type="number" name="amount_sats" min="1" placeholder="Ex: 250000" required>
 
-        <label>⛽ Taxa (sat/vByte):</label>
-        <input type="number" name="sat_per_vbyte" min="1" placeholder="Ex: 3" required>
+        <label>⛽ Taxa (sat/vByte): <small id="feeHints" class="fee-hints"></small></label>
+        <input type="number" id="sat_per_vbyte" name="sat_per_vbyte" min="1" placeholder="Ex: 3" required>
 
         <label>🏁 Endereço on-chain de fechamento (opcional):</label>
         <input type="text" name="close_address" placeholder="bc1...">
@@ -65,6 +65,24 @@
         msg.style.display = 'none';
         msg.textContent = '';
         modal.classList.add('is-visible');
+
+        // Buscar taxas sugeridas da mempool
+        const feeHints = document.getElementById('feeHints');
+        const feeInput = document.getElementById('sat_per_vbyte');
+        if (feeHints && feeInput) {
+          fetch('https://mempool.space/api/v1/fees/recommended')
+            .then(r => r.json())
+            .then(fees => {
+              const fastest = Number(fees.fastestFee) || 1;
+              const hour = Number(fees.hourFee) || fastest;
+              feeHints.textContent = `(rápida: ${fastest} | 1h: ${hour})`;
+              // Preenche com a taxa rápida por padrão, o usuário pode alterar
+              feeInput.value = fastest;
+            })
+            .catch(() => {
+              feeHints.textContent = '';
+            });
+        }
       });
     }
     if (cancelBtn) {
@@ -97,7 +115,7 @@
           msg.textContent = '❌ Formato do peer inválido. Use pubkey@host:port';
           return;
         }
-        const MIN_SATS = 200000; // mínimo recomendado para canais
+        const MIN_SATS = 20000; // mínimo recomendado (padrão LND)
         if (!(amount > 0)) {
           msg.style.display = 'block';
           msg.classList.add('error');
@@ -107,7 +125,7 @@
         if (amount < MIN_SATS) {
           msg.style.display = 'block';
           msg.classList.add('error');
-          msg.textContent = '⚠️ Valor muito baixo. Recomenda-se >= 200000 sats para melhor roteamento.';
+          msg.textContent = '⚠️ Valor muito baixo. Recomenda-se >= ' + MIN_SATS + ' sats para melhor roteamento.';
           return;
         }
         if (!(satvb >= 1)) {

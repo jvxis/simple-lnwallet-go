@@ -475,3 +475,9 @@ button:hover {
 .modal-message.success {
     color: #00ff00;
 }
+
+/* Dica de taxa mempool */
+.fee-hints {
+    color: #00aa00;
+    font-size: 12px;
+}
